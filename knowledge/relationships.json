@@ -1,0 +1,24 @@
+{
+  "relationships": [
+    {
+      "from": "certainty-premium",
+      "to": "pre-confirmation",
+      "type": "applies_to",
+      "description": "確定性溢價理論解釋了為什麼用戶願意為預確認服務付費"
+    },
+    {
+      "from": "network-effect",
+      "to": "certainty-premium",
+      "type": "reinforces",
+      "description": "網絡效應增強了確定性的價值，因為更多用戶依賴穩定的服務"
+    }
+  ],
+  "relationship_types": [
+    "applies_to",
+    "reinforces",
+    "contrasts_with",
+    "prerequisite_for",
+    "example_of"
+  ],
+  "last_updated": "2025-09-19T13:30:00Z"
+}

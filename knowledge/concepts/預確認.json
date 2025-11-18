@@ -1,0 +1,18 @@
+{
+  "id": "pre-confirmation",
+  "name": "預確認",
+  "definition": "驗證者在交易正式上鏈之前就提供確定性保證的機制",
+  "context": "區塊鏈技術概念，類似於餐廳的預訂確認。驗證者提前承諾會將特定交易包含在即將產生的區塊中，從而為用戶提供即時的確認體驗。",
+  "examples": [
+    "以太坊驗證者提前確認交易將在下一個區塊被包含",
+    "餐廳預訂系統確認客人的座位已保留",
+    "航空公司確認機票預訂成功"
+  ],
+  "category": "技術",
+  "first_introduced": "2025-09-17-ethgas-infrastructure-financialization",
+  "referenced_in": ["2025-09-17-ethgas-infrastructure-financialization"],
+  "related_concepts": ["finality", "consensus-mechanism"],
+  "tags": ["區塊鏈", "共識機制", "用戶體驗"],
+  "created_at": "2025-09-19T13:30:00Z",
+  "updated_at": "2025-09-19T13:30:00Z"
+}

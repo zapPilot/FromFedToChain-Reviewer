@@ -1,0 +1,25 @@
+{
+  "concepts": [
+    {
+      "id": "certainty-premium",
+      "name": "確定性溢價",
+      "category": "經濟學",
+      "first_introduced": "2025-09-17-ethgas-infrastructure-financialization"
+    },
+    {
+      "id": "pre-confirmation",
+      "name": "預確認",
+      "category": "技術",
+      "first_introduced": "2025-09-17-ethgas-infrastructure-financialization"
+    },
+    {
+      "id": "network-effect",
+      "name": "網絡效應",
+      "category": "商業",
+      "first_introduced": "2025-09-17-ethgas-infrastructure-financialization"
+    }
+  ],
+  "categories": ["經濟學", "技術", "商業", "政策", "歷史"],
+  "total_concepts": 3,
+  "last_updated": "2025-09-19T13:30:00Z"
+}
