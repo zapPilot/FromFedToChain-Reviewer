@@ -7,7 +7,7 @@
     "build": "next build",
     "build:export": "next build && next export",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "clean": "rm -rf .next out",
     "format": "prettier --write . --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .prettierignore",
