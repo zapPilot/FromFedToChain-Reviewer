@@ -1,16 +1,10 @@
-import nextConfig from 'eslint-config-next'
-import prettierConfig from 'eslint-config-prettier'
+import nextConfig from 'eslint-config-next';
+import prettierConfig from 'eslint-config-prettier';
 
 // Flat ESLint config (ESLint v9+)
 const config = [
   {
-    ignores: [
-      'node_modules/**',
-      '.next/**',
-      'out/**',
-      'build/**',
-      'audio/**',
-    ],
+    ignores: ['node_modules/**', '.next/**', 'out/**', 'build/**', 'audio/**'],
   },
   ...nextConfig,
   {
@@ -19,6 +13,6 @@ const config = [
       ...prettierConfig.rules,
     },
   },
-]
+];
 
-export default config
+export default config;

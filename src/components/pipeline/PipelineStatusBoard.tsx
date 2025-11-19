@@ -108,12 +108,7 @@ function PhaseCard({ phase, isFirst }: PhaseCardProps) {
   const config = statusConfig[phase.status];
 
   return (
-    <div
-      className={cn(
-        'rounded-lg border-2 p-4 transition-all',
-        config.color
-      )}
-    >
+    <div className={cn('rounded-lg border-2 p-4 transition-all', config.color)}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="text-2xl">{config.icon}</div>

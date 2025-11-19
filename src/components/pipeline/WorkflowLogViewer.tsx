@@ -11,7 +11,10 @@ interface WorkflowLogViewerProps {
   workflowName: string;
 }
 
-export function WorkflowLogViewer({ runId, workflowName }: WorkflowLogViewerProps) {
+export function WorkflowLogViewer({
+  runId,
+  workflowName,
+}: WorkflowLogViewerProps) {
   const [expanded, setExpanded] = useState(false);
 
   const { data: logUrl, isLoading } = useQuery({

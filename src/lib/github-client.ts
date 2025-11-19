@@ -7,7 +7,8 @@ const GITHUB_API_BASE = 'https://api.github.com';
 
 // GitHub repository configuration
 // TODO: Update these values to match your repository
-const REPO_OWNER = process.env.NEXT_PUBLIC_GITHUB_OWNER || 'YOUR_GITHUB_USERNAME';
+const REPO_OWNER =
+  process.env.NEXT_PUBLIC_GITHUB_OWNER || 'YOUR_GITHUB_USERNAME';
 const REPO_NAME = process.env.NEXT_PUBLIC_GITHUB_REPO || 'all-weather-protocol';
 const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN || '';
 
@@ -20,7 +21,7 @@ export const WORKFLOWS = {
   CONTENT_UPLOAD: 'pipeline-content-upload.yml',
 } as const;
 
-export type WorkflowName = typeof WORKFLOWS[keyof typeof WORKFLOWS];
+export type WorkflowName = (typeof WORKFLOWS)[keyof typeof WORKFLOWS];
 
 export interface WorkflowRun {
   id: number;
@@ -56,7 +57,9 @@ class GitHubClient {
     this.token = GITHUB_TOKEN;
 
     if (!this.token) {
-      console.warn('GitHub token not set. Set NEXT_PUBLIC_GITHUB_TOKEN environment variable.');
+      console.warn(
+        'GitHub token not set. Set NEXT_PUBLIC_GITHUB_TOKEN environment variable.'
+      );
     }
   }
 
@@ -83,8 +86,12 @@ class GitHubClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(`GitHub API error: ${error.message || response.statusText}`);
+      const error = await response
+        .json()
+        .catch(() => ({ message: response.statusText }));
+      throw new Error(
+        `GitHub API error: ${error.message || response.statusText}`
+      );
     }
 
     return response.json();
@@ -141,8 +148,8 @@ class GitHubClient {
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       headers: {
-        'Authorization': `Bearer ${this.token}`,
-        'Accept': 'application/vnd.github+json',
+        Authorization: `Bearer ${this.token}`,
+        Accept: 'application/vnd.github+json',
       },
     });
 
@@ -192,7 +199,9 @@ class GitHubClient {
   ): Promise<string> {
     const endpoint = `/repos/${this.owner}/${this.repo}/contents/${path}?ref=${branch}`;
 
-    const data = await this.request<{ content: string; encoding: string }>(endpoint);
+    const data = await this.request<{ content: string; encoding: string }>(
+      endpoint
+    );
 
     if (data.encoding === 'base64') {
       return atob(data.content);
@@ -210,9 +219,12 @@ class GitHubClient {
   ): Promise<Array<{ name: string; path: string; type: 'file' | 'dir' }>> {
     const endpoint = `/repos/${this.owner}/${this.repo}/contents/${path}?ref=${branch}`;
 
-    const data = await this.request<Array<{ name: string; path: string; type: string }>>(endpoint);
+    const data =
+      await this.request<Array<{ name: string; path: string; type: string }>>(
+        endpoint
+      );
 
-    return data.map(item => ({
+    return data.map((item) => ({
       name: item.name,
       path: item.path,
       type: item.type === 'dir' ? 'dir' : 'file',

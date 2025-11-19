@@ -29,7 +29,8 @@ export function useWorkflowStatus({
 
       return {
         run: latestRun,
-        isRunning: latestRun?.status === 'in_progress' || latestRun?.status === 'queued',
+        isRunning:
+          latestRun?.status === 'in_progress' || latestRun?.status === 'queued',
         isComplete: latestRun?.status === 'completed',
         isSuccess: latestRun?.conclusion === 'success',
         isFailed: latestRun?.conclusion === 'failure',
