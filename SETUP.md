@@ -7,6 +7,7 @@
 Install the following tools on your system:
 
 #### FFmpeg (Required for audio processing)
+
 ```bash
 # macOS
 brew install ffmpeg
@@ -19,6 +20,7 @@ ffmpeg -version
 ```
 
 #### rclone (Required for Cloudflare R2 uploads)
+
 ```bash
 # Install rclone
 curl https://rclone.org/install.sh | sudo bash
@@ -39,6 +41,7 @@ rclone config create r2 s3 \
 ```
 
 Verify configuration:
+
 ```bash
 rclone lsd r2:
 ```
@@ -65,6 +68,7 @@ npm install
 ```
 
 This will install all required dependencies including:
+
 - `@google-cloud/text-to-speech` - Google TTS
 - `@google-cloud/translate` - Google Translation
 - `@aws-sdk/client-s3` - Cloudflare R2 (S3 compatible)
@@ -74,6 +78,7 @@ This will install all required dependencies including:
 ### 2. Environment Variables
 
 Copy the example environment file:
+
 ```bash
 cp .env.example .env.local
 ```
@@ -100,6 +105,7 @@ ANTHROPIC_API_KEY=your-claude-api-key-here
 ### 3. Copy Service Account Key
 
 Place your Google Cloud service account JSON file in the project root:
+
 ```bash
 cp /path/to/your/service-account.json ./service-account.json
 ```
@@ -109,12 +115,14 @@ cp /path/to/your/service-account.json ./service-account.json
 ### 4. Initialize Directory Structure
 
 The migration has already copied the following directories from FromFedToChain:
+
 - `content/` - Content files organized by language and category
 - `audio/` - Generated audio files
 - `knowledge/` - Knowledge concepts and relationships
 - `public/guidelines/` - Writing guidelines
 
 If these directories are missing, copy them from FromFedToChain:
+
 ```bash
 cp -r ../FromFedToChain/content ./
 cp -r ../FromFedToChain/audio ./
@@ -240,30 +248,39 @@ review-web/
 ## Troubleshooting
 
 ### FFmpeg Not Found
+
 ```
 Error: ffmpeg not found
 ```
+
 **Solution**: Install FFmpeg using your package manager
 
 ### rclone Not Configured
+
 ```
 Error: remote "r2" not found
 ```
+
 **Solution**: Configure rclone for Cloudflare R2 (see Prerequisites)
 
 ### Google Cloud Authentication Failed
+
 ```
 Error: Google Cloud authentication failed
 ```
+
 **Solution**:
+
 1. Verify `service-account.json` exists in project root
 2. Verify `GOOGLE_APPLICATION_CREDENTIALS` in `.env.local` points to the file
 3. Ensure the service account has the required API roles
 
 ### Content Directory Not Found
+
 ```
 Error: ENOENT: no such file or directory
 ```
+
 **Solution**: Copy content directories from FromFedToChain (see Installation step 4)
 
 ## API Documentation
@@ -304,6 +321,7 @@ Error: ENOENT: no such file or directory
 This application is the result of migrating code review and content management functionality from FromFedToChain. The Flutter mobile app remains in FromFedToChain, while all web-based review and pipeline processing has been moved here.
 
 **What was migrated**:
+
 - Knowledge Management System
 - Translation Service
 - Audio Generation Services (TTS, M3U8)
@@ -313,5 +331,6 @@ This application is the result of migrating code review and content management f
 - All API routes for the above services
 
 **What remains in FromFedToChain**:
+
 - Flutter mobile/web app for audio playback
 - Mobile-specific UI and audio streaming features

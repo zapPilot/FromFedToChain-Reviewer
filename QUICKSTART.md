@@ -78,6 +78,7 @@ Navigate to: [http://localhost:3000](http://localhost:3000)
 **Cause**: No draft content in FromFedToChain
 
 **Fix**: Create test content in FromFedToChain:
+
 ```bash
 cd ../FromFedToChain
 npm run create-content
@@ -92,6 +93,7 @@ npm run create-content
 ### Port 3000 already in use
 
 **Fix**: Use different port:
+
 ```bash
 npm run dev -- -p 3001
 ```

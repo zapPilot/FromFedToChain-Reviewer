@@ -27,6 +27,7 @@ CONTENT_DIR=/absolute/path/to/FromFedToChain/content
 ```
 
 **For default setup** (review-web and FromFedToChain as siblings):
+
 ```
 /path/to/all-weather-protocol/
 ├── FromFedToChain/
@@ -210,6 +211,7 @@ Open [http://localhost:3000](http://localhost:3000) and verify:
 **Cause**: Content directory path is incorrect
 
 **Fix**:
+
 1. Check `CONTENT_DIR` environment variable
 2. Verify path is absolute (starts with `/`)
 3. Ensure content files exist at the path
@@ -219,6 +221,7 @@ Open [http://localhost:3000](http://localhost:3000) and verify:
 **Cause**: Missing dependencies or TypeScript errors
 
 **Fix**:
+
 1. Run `npm run build` locally first
 2. Check build logs on Vercel dashboard
 3. Verify all dependencies are in `package.json`
@@ -228,6 +231,7 @@ Open [http://localhost:3000](http://localhost:3000) and verify:
 **Cause**: File system access issues on serverless
 
 **Fix**:
+
 1. Check Vercel function logs
 2. Verify content directory is accessible
 3. Consider Strategy B (API proxy) instead
@@ -247,6 +251,7 @@ To add a custom domain:
 ### Vercel Analytics
 
 Enable in project settings:
+
 - Vercel Analytics - Real user metrics
 - Speed Insights - Performance monitoring
 - Error tracking
