@@ -1,6 +1,6 @@
 {
   "id": "2025-10-20-tether-500b-valuation-hidden-shareholders",
-  "status": "draft",
+  "status": "reviewed",
   "category": "macro",
   "date": "2025-10-20",
   "language": "zh-TW",
@@ -28,7 +28,13 @@
   "audio_file": null,
   "social_hook": null,
   "feedback": {
-    "content_review": null
+    "content_review": {
+      "status": "accepted",
+      "score": 4,
+      "reviewer": "reviewer_web",
+      "timestamp": "2025-11-18T13:05:37.387Z",
+      "comments": "很棒的故事"
+    }
   },
-  "updated_at": "2025-10-20T14:30:00Z"
+  "updated_at": "2025-11-18T13:05:37.389Z"
 }

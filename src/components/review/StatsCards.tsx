@@ -1,5 +1,5 @@
-import { ReviewStats } from "@/types/content";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ReviewStats } from '@/types/content';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface StatsCardsProps {
   stats: ReviewStats;
@@ -8,28 +8,28 @@ interface StatsCardsProps {
 export function StatsCards({ stats }: StatsCardsProps) {
   const cards = [
     {
-      title: "Pending",
+      title: 'Pending',
       value: stats.pending,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
     },
     {
-      title: "Reviewed",
+      title: 'Reviewed',
       value: stats.reviewed,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
     },
     {
-      title: "Rejected",
+      title: 'Rejected',
       value: stats.rejected,
-      color: "text-red-600",
-      bgColor: "bg-red-50",
+      color: 'text-red-600',
+      bgColor: 'bg-red-50',
     },
     {
-      title: "Total",
+      title: 'Total',
       value: stats.total,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
     },
   ];
 
@@ -38,7 +38,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       {cards.map((card) => (
         <Card key={card.title} className={card.bgColor}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-gray-700">
               {card.title}
             </CardTitle>
           </CardHeader>

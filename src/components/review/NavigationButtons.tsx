@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { NavigationInfo } from "@/types/content";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { NavigationInfo } from '@/types/content';
 
 interface NavigationButtonsProps {
   navigation: NavigationInfo;

@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { KnowledgeManager } from "@/lib/KnowledgeManager";
+import { NextRequest, NextResponse } from 'next/server';
+import { KnowledgeManager } from '@/lib/KnowledgeManager';
 
 /**
  * GET /api/knowledge/stats
@@ -17,14 +17,14 @@ export async function GET(request: NextRequest) {
       data: stats,
     });
   } catch (error) {
-    console.error("Failed to get knowledge stats:", error);
+    console.error('Failed to get knowledge stats:', error);
     return NextResponse.json(
       {
         success: false,
         error:
           error instanceof Error
             ? error.message
-            : "Failed to get knowledge stats",
+            : 'Failed to get knowledge stats',
       },
       { status: 500 }
     );

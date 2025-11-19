@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ContentManager } from "@/lib/ContentManager";
+import { NextRequest, NextResponse } from 'next/server';
+import { ContentManager } from '@/lib/ContentManager';
 import {
   ReviewSubmitRequest,
   ReviewSubmitResponse,
   Category,
-} from "@/types/content";
+} from '@/types/content';
 
 export async function POST(
   request: NextRequest,
@@ -16,11 +16,11 @@ export async function POST(
     const { action, feedback, newCategory } = body;
 
     // Validate required feedback for rejection
-    if (action === "reject" && (!feedback || !feedback.trim())) {
+    if (action === 'reject' && (!feedback || !feedback.trim())) {
       return NextResponse.json(
         {
           success: false,
-          message: "Feedback is required when rejecting content",
+          message: 'Feedback is required when rejecting content',
         },
         { status: 400 }
       );
@@ -32,19 +32,19 @@ export async function POST(
     }
 
     // Add feedback
-    const score = action === "accept" ? 4 : 2;
-    const reviewer = "reviewer_web"; // Default reviewer name for web interface
+    const score = action === 'accept' ? 4 : 2;
+    const reviewer = 'reviewer_web'; // Default reviewer name for web interface
     await ContentManager.addContentFeedback(
       id,
-      action === "accept" ? "accepted" : "rejected",
+      action === 'accept' ? 'accepted' : 'rejected',
       score,
       reviewer,
-      feedback || "Approved for translation"
+      feedback || 'Approved for translation'
     );
 
     // Update status if accepted
-    if (action === "accept") {
-      await ContentManager.updateSourceStatus(id, "reviewed");
+    if (action === 'accept') {
+      await ContentManager.updateSourceStatus(id, 'reviewed');
     }
 
     // Get updated content
@@ -58,11 +58,11 @@ export async function POST(
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Error submitting review:", error);
+    console.error('Error submitting review:', error);
     return NextResponse.json(
       {
         success: false,
-        message: error instanceof Error ? error.message : "Unknown error",
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

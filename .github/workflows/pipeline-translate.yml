@@ -1,0 +1,79 @@
+name: Pipeline - Translation
+
+on:
+  workflow_dispatch:
+    inputs:
+      contentId:
+        description: 'Content ID to translate'
+        required: true
+        type: string
+      language:
+        description: 'Target language (leave empty for all)'
+        required: false
+        type: string
+      category:
+        description: 'Content category'
+        required: false
+        type: string
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./FromFedToChain
+        run: npm ci
+
+      - name: Setup Google Cloud credentials
+        run: |
+          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' | base64 -d > /tmp/service-account.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json" >> $GITHUB_ENV
+
+      - name: Run translation service
+        working-directory: ./FromFedToChain
+        run: |
+          node -e "
+            const { TranslationService } = require('./src/services/TranslationService.js');
+            const { ContentManager } = require('./src/ContentManager.js');
+
+            async function translate() {
+              const contentId = '${{ inputs.contentId }}';
+              console.log('Starting translation for:', contentId);
+
+              try {
+                const result = await TranslationService.translateContent(contentId);
+                console.log('Translation completed:', JSON.stringify(result, null, 2));
+
+                // Update source content status
+                await ContentManager.updateSourceStatus(contentId, 'translated');
+                console.log('Status updated to: translated');
+              } catch (error) {
+                console.error('Translation failed:', error.message);
+                process.exit(1);
+              }
+            }
+
+            translate();
+          "
+
+      - name: Commit translated files
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add FromFedToChain/content/
+          git diff --staged --quiet || git commit -m "Translation: ${{ inputs.contentId }}"
+          git push
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f /tmp/service-account.json

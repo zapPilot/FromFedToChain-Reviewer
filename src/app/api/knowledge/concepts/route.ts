@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { KnowledgeManager } from "@/lib/KnowledgeManager";
+import { NextRequest, NextResponse } from 'next/server';
+import { KnowledgeManager } from '@/lib/KnowledgeManager';
 
 /**
  * GET /api/knowledge/concepts
@@ -14,10 +14,10 @@ import { KnowledgeManager } from "@/lib/KnowledgeManager";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const category = searchParams.get("category");
-    const query = searchParams.get("query");
-    const fuzzy = searchParams.get("fuzzy") !== "false";
-    const includeContext = searchParams.get("includeContext") === "true";
+    const category = searchParams.get('category');
+    const query = searchParams.get('query');
+    const fuzzy = searchParams.get('fuzzy') !== 'false';
+    const includeContext = searchParams.get('includeContext') === 'true';
 
     // Initialize knowledge base if needed
     await KnowledgeManager.initialize();
@@ -44,12 +44,12 @@ export async function GET(request: NextRequest) {
       count: concepts.length,
     });
   } catch (error) {
-    console.error("Failed to get concepts:", error);
+    console.error('Failed to get concepts:', error);
     return NextResponse.json(
       {
         success: false,
         error:
-          error instanceof Error ? error.message : "Failed to get concepts",
+          error instanceof Error ? error.message : 'Failed to get concepts',
       },
       { status: 500 }
     );

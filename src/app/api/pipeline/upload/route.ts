@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { CloudflareR2Service } from "@/lib/services/CloudflareR2Service";
+import { NextRequest, NextResponse } from 'next/server';
+import { CloudflareR2Service } from '@/lib/services/CloudflareR2Service';
 
 /**
  * POST /api/pipeline/upload
@@ -13,13 +13,13 @@ import { CloudflareR2Service } from "@/lib/services/CloudflareR2Service";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { contentId, language, format = "both" } = body;
+    const { contentId, language, format = 'both' } = body;
 
     if (!contentId || !language) {
       return NextResponse.json(
         {
           success: false,
-          error: "Missing required parameters: contentId, language",
+          error: 'Missing required parameters: contentId, language',
         },
         { status: 400 }
       );
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     } = {};
 
     // Upload WAV
-    if (format === "wav" || format === "both") {
+    if (format === 'wav' || format === 'both') {
       console.log(`☁️ Uploading WAV to R2: ${contentId} (${language})...`);
       const wavResult = await CloudflareR2Service.uploadWAVAudio(
         contentId,
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload M3U8
-    if (format === "m3u8" || format === "both") {
+    if (format === 'm3u8' || format === 'both') {
       console.log(`☁️ Uploading M3U8 to R2: ${contentId} (${language})...`);
       const m3u8Result = await CloudflareR2Service.uploadM3U8Audio(
         contentId,
@@ -56,11 +56,11 @@ export async function POST(request: NextRequest) {
       message: `Upload completed for ${contentId} (${language})`,
     });
   } catch (error) {
-    console.error("Upload failed:", error);
+    console.error('Upload failed:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Upload failed",
+        error: error instanceof Error ? error.message : 'Upload failed',
       },
       { status: 500 }
     );

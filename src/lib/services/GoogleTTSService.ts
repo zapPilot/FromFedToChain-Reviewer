@@ -1,6 +1,6 @@
-import { TextToSpeechClient } from "@google-cloud/text-to-speech";
-import path from "path";
-import type { google } from "@google-cloud/text-to-speech/build/protos/protos";
+import { TextToSpeechClient } from '@google-cloud/text-to-speech';
+import path from 'path';
+import type { google } from '@google-cloud/text-to-speech/build/protos/protos';
 
 interface VoiceConfig {
   languageCode: string;
@@ -20,7 +20,7 @@ export class GoogleTTSService {
   constructor() {
     const serviceAccountPath =
       process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-      path.resolve(process.cwd(), "service-account.json");
+      path.resolve(process.cwd(), 'service-account.json');
 
     this.client = new TextToSpeechClient({
       keyFilename: serviceAccountPath,
@@ -57,7 +57,7 @@ export class GoogleTTSService {
         name: voiceConfig.name,
       },
       audioConfig: {
-        audioEncoding: "LINEAR16",
+        audioEncoding: 'LINEAR16',
         sampleRateHertz: 16000,
       },
     };
@@ -96,7 +96,7 @@ export class GoogleTTSService {
 
   combineAudioChunks(audioChunks: Buffer[]): Buffer {
     if (!audioChunks || audioChunks.length === 0) {
-      throw new Error("No audio chunks to combine");
+      throw new Error('No audio chunks to combine');
     }
 
     if (audioChunks.length === 1) {
@@ -165,7 +165,7 @@ export class GoogleTTSService {
     }
 
     // If content is under limit, return as single chunk
-    if (Buffer.byteLength(content, "utf8") <= MAX_CHUNK_BYTES) {
+    if (Buffer.byteLength(content, 'utf8') <= MAX_CHUNK_BYTES) {
       return [content];
     }
 
@@ -173,14 +173,14 @@ export class GoogleTTSService {
 
     // First, try to split by paragraphs
     const paragraphs = content.split(/\n\s*\n/);
-    let currentChunk = "";
+    let currentChunk = '';
 
     for (const paragraph of paragraphs) {
       const testChunk = currentChunk
-        ? currentChunk + "\n\n" + paragraph
+        ? currentChunk + '\n\n' + paragraph
         : paragraph;
 
-      if (Buffer.byteLength(testChunk, "utf8") <= MAX_CHUNK_BYTES) {
+      if (Buffer.byteLength(testChunk, 'utf8') <= MAX_CHUNK_BYTES) {
         currentChunk = testChunk;
       } else {
         // Current chunk is good, save it
@@ -189,14 +189,14 @@ export class GoogleTTSService {
         }
 
         // Check if single paragraph is too large
-        if (Buffer.byteLength(paragraph, "utf8") > MAX_CHUNK_BYTES) {
+        if (Buffer.byteLength(paragraph, 'utf8') > MAX_CHUNK_BYTES) {
           // Split paragraph by sentences
           const sentenceChunks = this.splitParagraphBySentences(
             paragraph,
             MAX_CHUNK_BYTES
           );
           chunks.push(...sentenceChunks);
-          currentChunk = "";
+          currentChunk = '';
         } else {
           currentChunk = paragraph;
         }
@@ -217,24 +217,24 @@ export class GoogleTTSService {
   splitParagraphBySentences(paragraph: string, maxBytes: number): string[] {
     const sentences = paragraph.split(/[.!?]+\s+/);
     const chunks: string[] = [];
-    let currentChunk = "";
+    let currentChunk = '';
 
     for (const sentence of sentences) {
       const testChunk = currentChunk
-        ? currentChunk + ". " + sentence
+        ? currentChunk + '. ' + sentence
         : sentence;
 
-      if (Buffer.byteLength(testChunk, "utf8") <= maxBytes) {
+      if (Buffer.byteLength(testChunk, 'utf8') <= maxBytes) {
         currentChunk = testChunk;
       } else {
         if (currentChunk) {
-          chunks.push(currentChunk + ".");
+          chunks.push(currentChunk + '.');
         }
 
         // If single sentence is too large, force split
-        if (Buffer.byteLength(sentence, "utf8") > maxBytes) {
+        if (Buffer.byteLength(sentence, 'utf8') > maxBytes) {
           chunks.push(...this.forceSplitText(sentence, maxBytes));
-          currentChunk = "";
+          currentChunk = '';
         } else {
           currentChunk = sentence;
         }
@@ -242,7 +242,7 @@ export class GoogleTTSService {
     }
 
     if (currentChunk) {
-      chunks.push(currentChunk + (currentChunk.match(/[.!?]$/) ? "" : "."));
+      chunks.push(currentChunk + (currentChunk.match(/[.!?]$/) ? '' : '.'));
     }
 
     return chunks;
@@ -257,7 +257,7 @@ export class GoogleTTSService {
       let chunk = remaining;
 
       // Find the largest chunk that fits
-      while (Buffer.byteLength(chunk, "utf8") > maxBytes && chunk.length > 0) {
+      while (Buffer.byteLength(chunk, 'utf8') > maxBytes && chunk.length > 0) {
         chunk = chunk.substring(0, chunk.length - 10);
       }
 
@@ -266,7 +266,7 @@ export class GoogleTTSService {
         chunk = remaining.substring(0, 1);
       }
 
-      chunks.push(chunk + (remaining.length > chunk.length ? "..." : ""));
+      chunks.push(chunk + (remaining.length > chunk.length ? '...' : ''));
       remaining = remaining.substring(chunk.length);
     }
 
@@ -274,7 +274,7 @@ export class GoogleTTSService {
   }
 
   ensureChunkSize(chunk: string, maxBytes: number): string[] {
-    if (Buffer.byteLength(chunk, "utf8") <= maxBytes) {
+    if (Buffer.byteLength(chunk, 'utf8') <= maxBytes) {
       return [chunk];
     }
     return this.forceSplitText(chunk, maxBytes);
@@ -282,31 +282,31 @@ export class GoogleTTSService {
 
   static prepareContentForTTS(content: string, language: string): string {
     // Clean content for TTS - removes markdown formatting and optimizes for speech
-    if (typeof content !== "string") {
+    if (typeof content !== 'string') {
       return content;
     }
 
     let ttsContent = content
       // Remove code blocks first (must be before inline code)
-      .replace(/```[\s\S]*?```/g, "") // Remove multi-line code blocks
+      .replace(/```[\s\S]*?```/g, '') // Remove multi-line code blocks
 
       // Remove markdown formatting but preserve the text content
-      .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold: **text** -> text
-      .replace(/\*(.*?)\*/g, "$1") // Remove italic: *text* -> text
-      .replace(/`([^`]*)`/g, "$1") // Remove inline code: `text` -> text
-      .replace(/#{1,6}\s+/g, "") // Remove headers: ## Header -> Header
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links: [text](url) -> text
-      .replace(/^\s*[-*+]\s+/gm, "") // Remove list markers: - item -> item
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold: **text** -> text
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic: *text* -> text
+      .replace(/`([^`]*)`/g, '$1') // Remove inline code: `text` -> text
+      .replace(/#{1,6}\s+/g, '') // Remove headers: ## Header -> Header
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links: [text](url) -> text
+      .replace(/^\s*[-*+]\s+/gm, '') // Remove list markers: - item -> item
 
       // Clean up line breaks and spacing
-      .replace(/\n{3,}/g, "\n\n") // Normalize excessive line breaks
-      .replace(/\n\n/g, " ") // Replace double newlines with space
-      .replace(/\n/g, " ") // Replace single newlines with space
-      .replace(/\s{2,}/g, " ") // Collapse multiple spaces
+      .replace(/\n{3,}/g, '\n\n') // Normalize excessive line breaks
+      .replace(/\n\n/g, ' ') // Replace double newlines with space
+      .replace(/\n/g, ' ') // Replace single newlines with space
+      .replace(/\s{2,}/g, ' ') // Collapse multiple spaces
       .trim(); // Remove leading/trailing whitespace
 
     // Add pauses for better speech flow
-    ttsContent = ttsContent.replace(/([.!?])\s+([A-Z])/g, "$1 ... $2"); // Add pause between sentences
+    ttsContent = ttsContent.replace(/([.!?])\s+([A-Z])/g, '$1 ... $2'); // Add pause between sentences
 
     return ttsContent;
   }

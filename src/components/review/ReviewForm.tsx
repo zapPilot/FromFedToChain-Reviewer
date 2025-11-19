@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useForm } from "react-hook-form";
-import { ContentItem, Category } from "@/types/content";
-import { reviewFormSchema, ReviewFormData } from "@/lib/validations";
-import { ContentSchema } from "@/lib/ContentSchema";
+import { useForm } from 'react-hook-form';
+import { ContentItem, Category } from '@/types/content';
+import { reviewFormSchema, ReviewFormData } from '@/lib/validations';
+import { ContentSchema } from '@/lib/ContentSchema';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 
 interface ReviewFormProps {
   content: ContentItem;
@@ -34,12 +34,12 @@ export function ReviewForm({
   } = useForm<ReviewFormData>({
     defaultValues: {
       action: undefined,
-      feedback: "",
+      feedback: '',
       newCategory: content.category,
     },
   });
 
-  const action = watch("action");
+  const action = watch('action');
   const categories = ContentSchema.getCategories();
 
   return (
@@ -57,8 +57,8 @@ export function ReviewForm({
             <Label htmlFor="category">Category</Label>
             <select
               id="category"
-              {...register("newCategory")}
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 mt-1"
+              {...register('newCategory')}
+              className="flex h-10 w-full rounded-md border border-gray-400 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 mt-1"
             >
               {categories.map((cat) => {
                 const info = ContentSchema.getCategoryInfo(cat);
@@ -80,12 +80,12 @@ export function ReviewForm({
                   type="radio"
                   id="accept"
                   value="accept"
-                  {...register("action", { required: true })}
+                  {...register('action', { required: true })}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                 />
                 <label
                   htmlFor="accept"
-                  className="ml-2 text-sm font-medium text-gray-700"
+                  className="ml-2 text-sm font-medium text-gray-900"
                 >
                   ✅ Accept
                 </label>
@@ -95,12 +95,12 @@ export function ReviewForm({
                   type="radio"
                   id="reject"
                   value="reject"
-                  {...register("action", { required: true })}
+                  {...register('action', { required: true })}
                   className="h-4 w-4 text-red-600 focus:ring-red-500"
                 />
                 <label
                   htmlFor="reject"
-                  className="ml-2 text-sm font-medium text-gray-700"
+                  className="ml-2 text-sm font-medium text-gray-900"
                 >
                   ❌ Reject
                 </label>
@@ -116,15 +116,16 @@ export function ReviewForm({
           {/* Feedback Textarea */}
           <div>
             <Label htmlFor="feedback">
-              Feedback {action === "reject" && <span className="text-red-600">*</span>}
+              Feedback{' '}
+              {action === 'reject' && <span className="text-red-600">*</span>}
             </Label>
             <Textarea
               id="feedback"
-              {...register("feedback")}
+              {...register('feedback')}
               placeholder={
-                action === "reject"
-                  ? "Please provide feedback (required for rejection)"
-                  : "Optional feedback or comments"
+                action === 'reject'
+                  ? 'Please provide feedback (required for rejection)'
+                  : 'Optional feedback or comments'
               }
               className="mt-1"
               rows={4}
@@ -141,9 +142,9 @@ export function ReviewForm({
             type="submit"
             className="w-full"
             disabled={isSubmitting}
-            variant={action === "reject" ? "destructive" : "default"}
+            variant={action === 'reject' ? 'destructive' : 'default'}
           >
-            {isSubmitting ? "Submitting..." : "Submit Review"}
+            {isSubmitting ? 'Submitting...' : 'Submit Review'}
           </Button>
         </form>
       </CardContent>

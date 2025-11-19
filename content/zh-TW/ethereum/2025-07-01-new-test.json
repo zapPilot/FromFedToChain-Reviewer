@@ -6,9 +6,7 @@
   "language": "zh-TW",
   "title": "新測試文章",
   "content": "新的測試內容...",
-  "references": [
-    "新來源"
-  ],
+  "references": ["新來源"],
   "audio_file": null,
   "social_hook": null,
   "feedback": {

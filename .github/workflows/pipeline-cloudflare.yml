@@ -1,0 +1,89 @@
+name: Pipeline - Cloudflare R2 Upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      contentId:
+        description: 'Content ID to upload to Cloudflare R2'
+        required: true
+        type: string
+      language:
+        description: 'Target language (leave empty for all)'
+        required: false
+        type: string
+
+jobs:
+  upload-r2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          rclone version
+
+      - name: Configure rclone for Cloudflare R2
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${{ secrets.R2_ACCESS_KEY_ID }}
+          secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          endpoint = ${{ secrets.R2_ENDPOINT }}
+          region = auto
+          acl = private
+          EOF
+
+      - name: Install dependencies
+        working-directory: ./FromFedToChain
+        run: npm ci
+
+      - name: Upload to Cloudflare R2
+        working-directory: ./FromFedToChain
+        run: |
+          node -e "
+            const { CloudflareR2Service } = require('./src/services/CloudflareR2Service.js');
+            const { ContentManager } = require('./src/ContentManager.js');
+
+            async function uploadR2() {
+              const contentId = '${{ inputs.contentId }}';
+              console.log('Starting Cloudflare R2 upload for:', contentId);
+
+              try {
+                const result = await CloudflareR2Service.uploadAudioToR2(contentId);
+                console.log('R2 upload completed:', JSON.stringify(result, null, 2));
+
+                // Update source content status
+                await ContentManager.updateSourceStatus(contentId, 'cloudflare');
+                console.log('Status updated to: cloudflare');
+              } catch (error) {
+                console.error('R2 upload failed:', error.message);
+                process.exit(1);
+              }
+            }
+
+            uploadR2();
+          "
+
+      - name: Commit streaming URLs
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add FromFedToChain/content/
+          git diff --staged --quiet || git commit -m "Cloudflare R2 upload: ${{ inputs.contentId }}"
+          git push
+
+      - name: Cleanup rclone config
+        if: always()
+        run: rm -rf ~/.config/rclone

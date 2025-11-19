@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Providers } from "./providers";
-import { Header } from "@/components/layout/Header";
+import type { Metadata } from 'next';
+import './globals.css';
+import { Providers } from './providers';
+import { Header } from '@/components/layout/Header';
 
 export const metadata: Metadata = {
-  title: "Content Review - From Fed to Chain",
-  description: "Web-based review interface for content management",
+  title: 'Content Review - From Fed to Chain',
+  description: 'Web-based review interface for content management',
 };
 
 export default function RootLayout({

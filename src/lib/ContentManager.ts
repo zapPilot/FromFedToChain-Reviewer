@@ -1,19 +1,19 @@
-import fs from "fs/promises";
-import path from "path";
+import fs from 'fs/promises';
+import path from 'path';
 import {
   ContentItem,
   ContentReviewFeedback,
   Category,
   Status,
-} from "@/types/content";
-import { ContentSchema } from "./ContentSchema";
+} from '@/types/content';
+import { ContentSchema } from './ContentSchema';
 
 export class ContentManager {
   // Point to the FromFedToChain content directory
   // This will be configured via environment variable or symlink
   static CONTENT_DIR =
     process.env.CONTENT_DIR ||
-    path.join(process.cwd(), "..", "FromFedToChain", "content");
+    path.join(process.cwd(), '..', 'FromFedToChain', 'content');
 
   // Read content from specific language
   static async _readFromLanguage(
@@ -30,7 +30,7 @@ export class ContentManager {
         `${id}.json`
       );
       try {
-        const content = await fs.readFile(filePath, "utf-8");
+        const content = await fs.readFile(filePath, 'utf-8');
         const parsed: ContentItem = JSON.parse(content);
         return parsed;
       } catch (error) {
@@ -65,7 +65,7 @@ export class ContentManager {
 
   // Read source content specifically (zh-TW)
   static async readSource(id: string): Promise<ContentItem> {
-    return this.read(id, "zh-TW");
+    return this.read(id, 'zh-TW');
   }
 
   // List all content with optional status filter
@@ -83,11 +83,11 @@ export class ContentManager {
 
         try {
           const files = await fs.readdir(categoryDir);
-          const contentFiles = files.filter((f) => f.endsWith(".json"));
+          const contentFiles = files.filter((f) => f.endsWith('.json'));
 
           for (const file of contentFiles) {
             try {
-              const id = path.basename(file, ".json");
+              const id = path.basename(file, '.json');
               const content = await this._readFromLanguage(id, lang);
 
               if (!status || content.status === status) {
@@ -95,7 +95,9 @@ export class ContentManager {
               }
             } catch (e) {
               // Skip invalid files
-              console.warn(`⚠️ Skipping invalid file: ${lang}/${category}/${file}`);
+              console.warn(
+                `⚠️ Skipping invalid file: ${lang}/${category}/${file}`
+              );
             }
           }
         } catch (error) {
@@ -112,12 +114,12 @@ export class ContentManager {
 
   // Get source content for review (excludes rejected content)
   static async getSourceForReview(): Promise<ContentItem[]> {
-    const draftContent = await this.list("draft", "zh-TW");
+    const draftContent = await this.list('draft', 'zh-TW');
 
     // Filter out content that has been rejected
     return draftContent.filter((content) => {
       const review = content.feedback?.content_review;
-      return !review || review.status !== "rejected";
+      return !review || review.status !== 'rejected';
     });
   }
 
@@ -148,8 +150,11 @@ export class ContentManager {
   }
 
   // Update source content status specifically
-  static async updateSourceStatus(id: string, status: Status): Promise<ContentItem> {
-    return this.update(id, { status }, "zh-TW");
+  static async updateSourceStatus(
+    id: string,
+    status: Status
+  ): Promise<ContentItem> {
+    return this.update(id, { status }, 'zh-TW');
   }
 
   // Update category for source content
@@ -174,7 +179,7 @@ export class ContentManager {
     };
 
     // Write to new location
-    const newDir = path.join(this.CONTENT_DIR, "zh-TW", category);
+    const newDir = path.join(this.CONTENT_DIR, 'zh-TW', category);
     await fs.mkdir(newDir, { recursive: true });
     const newFilePath = path.join(newDir, `${id}.json`);
     await fs.writeFile(newFilePath, JSON.stringify(updatedContent, null, 2));
@@ -182,7 +187,7 @@ export class ContentManager {
     // Delete old file
     const oldFilePath = path.join(
       this.CONTENT_DIR,
-      "zh-TW",
+      'zh-TW',
       oldCategory,
       `${id}.json`
     );
@@ -198,17 +203,17 @@ export class ContentManager {
   // Add feedback for content review
   static async addContentFeedback(
     id: string,
-    status: "accepted" | "rejected",
+    status: 'accepted' | 'rejected',
     score: number,
     reviewer: string,
     comments: string
   ): Promise<ContentItem> {
     // Validate that rejection requires feedback
-    if (status === "rejected" && (!comments || comments.trim() === "")) {
-      throw new Error("Feedback comment is required when rejecting content");
+    if (status === 'rejected' && (!comments || comments.trim() === '')) {
+      throw new Error('Feedback comment is required when rejecting content');
     }
 
-    const contentData = await this.read(id, "zh-TW");
+    const contentData = await this.read(id, 'zh-TW');
 
     // Initialize feedback structure if missing
     if (!contentData.feedback) {
@@ -223,7 +228,7 @@ export class ContentManager {
       score,
       reviewer,
       timestamp: new Date().toISOString(),
-      comments: comments || "Approved for translation",
+      comments: comments || 'Approved for translation',
     };
 
     contentData.feedback.content_review = feedbackData;
@@ -248,7 +253,7 @@ export class ContentManager {
 
   // Get review history (content with feedback)
   static async getReviewHistory(limit?: number): Promise<ContentItem[]> {
-    const allContent = await this.list(null, "zh-TW");
+    const allContent = await this.list(null, 'zh-TW');
 
     // Filter to only content with review feedback
     const reviewed = allContent.filter(
@@ -257,8 +262,8 @@ export class ContentManager {
 
     // Sort by review timestamp descending
     const sorted = reviewed.sort((a, b) => {
-      const aTime = a.feedback?.content_review?.timestamp || "";
-      const bTime = b.feedback?.content_review?.timestamp || "";
+      const aTime = a.feedback?.content_review?.timestamp || '';
+      const bTime = b.feedback?.content_review?.timestamp || '';
       return new Date(bTime).getTime() - new Date(aTime).getTime();
     });
 

@@ -1,6 +1,6 @@
 {
   "id": "2025-09-26-peerdas-ethereum-scaling-paradigm-shift",
-  "status": "draft",
+  "status": "reviewed",
   "category": "ethereum",
   "date": "2025-09-26",
   "language": "zh-TW",
@@ -23,7 +23,13 @@
     "network-effect"
   ],
   "feedback": {
-    "content_review": null
+    "content_review": {
+      "status": "accepted",
+      "score": 4,
+      "reviewer": "reviewer_web",
+      "timestamp": "2025-11-18T13:07:41.124Z",
+      "comments": "peerdas 教學"
+    }
   },
-  "updated_at": "2025-09-26T14:30:00Z"
+  "updated_at": "2025-11-18T13:07:41.125Z"
 }

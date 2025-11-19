@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api-client';
 
 export function useReviewQueue(params?: {
   category?: string;
@@ -8,14 +8,14 @@ export function useReviewQueue(params?: {
   search?: string;
 }) {
   return useQuery({
-    queryKey: ["review-queue", params],
+    queryKey: ['review-queue', params],
     queryFn: () => apiClient.getPendingContent(params),
   });
 }
 
 export function useReviewStats() {
   return useQuery({
-    queryKey: ["review-stats"],
+    queryKey: ['review-stats'],
     queryFn: () => apiClient.getStats(),
   });
 }

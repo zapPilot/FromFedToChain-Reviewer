@@ -1,14 +1,14 @@
-import { ContentItem } from "@/types/content";
+import { ContentItem } from '@/types/content';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { CategoryBadge } from "./CategoryBadge";
-import { StatusBadge } from "./StatusBadge";
-import { ContentSchema } from "@/lib/ContentSchema";
+} from '@/components/ui/card';
+import { CategoryBadge } from './CategoryBadge';
+import { StatusBadge } from './StatusBadge';
+import { ContentSchema } from '@/lib/ContentSchema';
 
 interface ContentDisplayProps {
   content: ContentItem;
@@ -29,11 +29,11 @@ export function ContentDisplay({ content }: ContentDisplayProps) {
         </div>
         <CardTitle className="text-2xl">{content.title}</CardTitle>
         <CardDescription>
-          {new Date(content.date).toLocaleDateString("en-US", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
+          {new Date(content.date).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
           })}
         </CardDescription>
       </CardHeader>
@@ -41,7 +41,7 @@ export function ContentDisplay({ content }: ContentDisplayProps) {
         <div className="space-y-4">
           {/* Content Text */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">
               Content
             </h3>
             <div className="prose prose-sm max-w-none bg-gray-50 p-4 rounded-md border border-gray-200 max-h-96 overflow-y-auto">
@@ -54,12 +54,12 @@ export function ContentDisplay({ content }: ContentDisplayProps) {
           {/* References */}
           {content.references && content.references.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">
                 References
               </h3>
               <ul className="list-disc list-inside space-y-1">
                 {content.references.map((ref, index) => (
-                  <li key={index} className="text-sm text-gray-600">
+                  <li key={index} className="text-sm text-gray-700">
                     {ref}
                   </li>
                 ))}
@@ -70,19 +70,19 @@ export function ContentDisplay({ content }: ContentDisplayProps) {
           {/* Framework */}
           {content.framework && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">
                 Writing Framework
               </h3>
-              <p className="text-sm text-gray-600">{content.framework}</p>
+              <p className="text-sm text-gray-700">{content.framework}</p>
             </div>
           )}
 
           {/* Metadata */}
-          <div className="text-xs text-gray-400 pt-2 border-t">
+          <div className="text-xs text-gray-500 pt-2 border-t">
             <p>ID: {content.id}</p>
             <p>
-              Last updated:{" "}
-              {new Date(content.updated_at).toLocaleString("en-US")}
+              Last updated:{' '}
+              {new Date(content.updated_at).toLocaleString('en-US')}
             </p>
           </div>
         </div>

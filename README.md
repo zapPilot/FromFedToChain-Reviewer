@@ -44,6 +44,7 @@ CONTENT_DIR=/absolute/path/to/FromFedToChain/content
 **Option B: Default Relative Path**
 
 By default, the app assumes FromFedToChain is a sibling directory:
+
 ```
 /path/to/all-weather-protocol/
 ├── FromFedToChain/
@@ -75,6 +76,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## Development Roadmap
 
 ### Phase 1: MVP (Current)
+
 - [x] Project setup with TypeScript and Tailwind
 - [x] API routes for review operations
 - [ ] Review queue page UI
@@ -83,6 +85,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - [ ] Testing with real data
 
 ### Phase 2: Enhanced Features
+
 - [ ] Authentication with NextAuth.js
 - [ ] Multi-user support
 - [ ] Advanced filtering and search
@@ -90,6 +93,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - [ ] Dark mode toggle
 
 ### Phase 3: Advanced
+
 - [ ] Real-time collaboration
 - [ ] Commenting and discussions
 - [ ] Pipeline status integration

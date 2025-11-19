@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useContentDetail, useReviewSubmit } from "@/hooks/useContentDetail";
-import { ContentDisplay } from "@/components/review/ContentDisplay";
-import { ReviewForm } from "@/components/review/ReviewForm";
-import { NavigationButtons } from "@/components/review/NavigationButtons";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ReviewFormData } from "@/lib/validations";
+import { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useContentDetail, useReviewSubmit } from '@/hooks/useContentDetail';
+import { ContentDisplay } from '@/components/review/ContentDisplay';
+import { ReviewForm } from '@/components/review/ReviewForm';
+import { NavigationButtons } from '@/components/review/NavigationButtons';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ReviewFormData } from '@/lib/validations';
 
 export default function ContentDetailPage() {
   const params = useParams();
@@ -36,12 +36,12 @@ export default function ContentDetailPage() {
       if (navigation?.next) {
         router.push(`/review/${navigation.next}`);
       } else {
-        router.push("/review");
+        router.push('/review');
       }
     } catch (error) {
-      console.error("Error submitting review:", error);
+      console.error('Error submitting review:', error);
       alert(
-        `Error: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   };
@@ -57,15 +57,15 @@ export default function ContentDetailPage() {
         return;
       }
 
-      if (e.key === "ArrowLeft" && navigation?.previous) {
+      if (e.key === 'ArrowLeft' && navigation?.previous) {
         router.push(`/review/${navigation.previous}`);
-      } else if (e.key === "ArrowRight" && navigation?.next) {
+      } else if (e.key === 'ArrowRight' && navigation?.next) {
         router.push(`/review/${navigation.next}`);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [navigation, router]);
 
   if (isLoading) {
@@ -91,11 +91,13 @@ export default function ContentDetailPage() {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
           Content Not Found
         </h2>
-        <p className="text-gray-600 mb-4">
-          {error instanceof Error ? error.message : "The content could not be loaded"}
+        <p className="text-gray-700 mb-4">
+          {error instanceof Error
+            ? error.message
+            : 'The content could not be loaded'}
         </p>
         <button
-          onClick={() => router.push("/review")}
+          onClick={() => router.push('/review')}
           className="text-blue-600 hover:underline"
         >
           Back to Review Queue
@@ -127,7 +129,7 @@ export default function ContentDetailPage() {
       </div>
 
       {/* Keyboard Shortcuts Hint */}
-      <div className="mt-6 text-center text-sm text-gray-500">
+      <div className="mt-6 text-center text-sm text-gray-600">
         <p>💡 Tip: Use ← → arrow keys to navigate between content</p>
       </div>
     </div>

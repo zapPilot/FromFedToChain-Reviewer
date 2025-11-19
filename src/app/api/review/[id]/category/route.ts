@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ContentManager } from "@/lib/ContentManager";
-import { Category } from "@/types/content";
+import { NextRequest, NextResponse } from 'next/server';
+import { ContentManager } from '@/lib/ContentManager';
+import { Category } from '@/types/content';
 
 export async function PATCH(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function PATCH(
 
     if (!category) {
       return NextResponse.json(
-        { error: "Category is required" },
+        { error: 'Category is required' },
         { status: 400 }
       );
     }
@@ -27,14 +27,14 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       content: updatedContent,
-      message: "Category updated successfully",
+      message: 'Category updated successfully',
     });
   } catch (error) {
-    console.error("Error updating category:", error);
+    console.error('Error updating category:', error);
     return NextResponse.json(
       {
-        error: "Failed to update category",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to update category',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

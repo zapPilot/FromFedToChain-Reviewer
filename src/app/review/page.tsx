@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useReviewQueue, useReviewStats } from "@/hooks/useReviewQueue";
-import { StatsCards } from "@/components/review/StatsCards";
-import { FilterBar } from "@/components/review/FilterBar";
-import { ContentCard } from "@/components/review/ContentCard";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { useReviewQueue, useReviewStats } from '@/hooks/useReviewQueue';
+import { StatsCards } from '@/components/review/StatsCards';
+import { FilterBar } from '@/components/review/FilterBar';
+import { ContentCard } from '@/components/review/ContentCard';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 export default function ReviewQueuePage() {
-  const [category, setCategory] = useState("");
-  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState('');
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const limit = 12;
 
@@ -29,7 +29,7 @@ export default function ReviewQueuePage() {
     <div>
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Review Queue</h2>
-        <p className="text-gray-600">
+        <p className="text-gray-700">
           Review and approve content for translation
         </p>
       </div>
@@ -89,7 +89,7 @@ export default function ReviewQueuePage() {
               >
                 Previous
               </Button>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-700">
                 Page {page} of {pagination.totalPages}
               </span>
               <Button
@@ -111,10 +111,10 @@ export default function ReviewQueuePage() {
           <h3 className="text-xl font-medium text-gray-900 mb-2">
             No content to review
           </h3>
-          <p className="text-gray-500">
+          <p className="text-gray-600">
             {search || category
-              ? "Try adjusting your filters"
-              : "All content has been reviewed!"}
+              ? 'Try adjusting your filters'
+              : 'All content has been reviewed!'}
           </p>
         </div>
       )}

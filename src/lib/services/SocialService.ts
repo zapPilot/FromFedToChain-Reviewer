@@ -1,7 +1,7 @@
-import { execSync } from "child_process";
-import { ContentManager } from "../ContentManager";
-import { ContentSchema } from "../ContentSchema";
-import { TranslationService } from "./TranslationService";
+import { execSync } from 'child_process';
+import { ContentManager } from '../ContentManager';
+import { ContentSchema } from '../ContentSchema';
+import { TranslationService } from './TranslationService';
 
 // Command executor type
 type CommandExecutor = (command: string, options?: any) => Buffer | string;
@@ -71,14 +71,12 @@ export class SocialService {
     id: string,
     commandExecutor: CommandExecutor = executeCommandSync
   ): Promise<Record<string, SocialHookResult>> {
-    console.log(
-      `📱 Starting zh-TW-first social hook generation for: ${id}`
-    );
+    console.log(`📱 Starting zh-TW-first social hook generation for: ${id}`);
 
     // Check source status first
     const sourceContent = await ContentManager.readSource(id);
 
-    if (sourceContent.status !== "content") {
+    if (sourceContent.status !== 'content') {
       throw new Error(
         `Content must be uploaded before social hooks. Current status: ${sourceContent.status}`
       );
@@ -90,14 +88,15 @@ export class SocialService {
     // Get all languages that should have social hooks generated
     const socialHookLanguages = ContentSchema.getAllLanguages().filter(
       (lang) =>
-        availableLanguages.includes(lang) && this.shouldGenerateSocialHooks(lang)
+        availableLanguages.includes(lang) &&
+        this.shouldGenerateSocialHooks(lang)
     );
 
     if (socialHookLanguages.length === 0) {
       console.log(
         `⚠️  No languages configured for social hook generation for ${id}`
       );
-      await ContentManager.updateSourceStatus(id, "social");
+      await ContentManager.updateSourceStatus(id, 'social');
       return {};
     }
 
@@ -105,7 +104,7 @@ export class SocialService {
 
     try {
       // Step 1: Get or generate master Chinese (zh-TW) hook - the source language
-      const sourceLang = "zh-TW";
+      const sourceLang = 'zh-TW';
       if (socialHookLanguages.includes(sourceLang)) {
         const sourceContent = await ContentManager.read(id, sourceLang);
         if (!sourceContent) {
@@ -116,21 +115,17 @@ export class SocialService {
 
         // Check if Chinese hook already exists
         if (sourceContent.social_hook && sourceContent.social_hook.trim()) {
-          console.log(
-            `🎯 Using existing Chinese social hook for: ${id}`
-          );
+          console.log(`🎯 Using existing Chinese social hook for: ${id}`);
           validatedChineseHook = sourceContent.social_hook;
           results[sourceLang] = {
             success: true,
             hook: validatedChineseHook,
-            method: "existing",
+            method: 'existing',
           };
           console.log(`✅ Master Chinese hook found: ${id}`);
         } else {
           // Generate new Chinese hook
-          console.log(
-            `🎯 Generating master Chinese social hook for: ${id}`
-          );
+          console.log(`🎯 Generating master Chinese social hook for: ${id}`);
 
           const masterHook = await this.generateHookWithClaude(
             sourceContent.title,
@@ -154,7 +149,7 @@ export class SocialService {
           results[sourceLang] = {
             success: true,
             hook: validatedChineseHook,
-            method: "generated",
+            method: 'generated',
           };
           console.log(`✅ Master Chinese hook generated: ${id}`);
         }
@@ -187,12 +182,10 @@ export class SocialService {
               results[targetLang] = {
                 success: true,
                 hook: validatedHook,
-                method: "translated",
+                method: 'translated',
               };
 
-              console.log(
-                `✅ Social hook translated to ${targetLang}: ${id}`
-              );
+              console.log(`✅ Social hook translated to ${targetLang}: ${id}`);
             } else {
               // Generate directly for any non-translation-target languages
               console.log(
@@ -207,12 +200,10 @@ export class SocialService {
               results[targetLang] = {
                 success: true,
                 hook,
-                method: "generated",
+                method: 'generated',
               };
 
-              console.log(
-                `✅ Social hook generated for ${targetLang}: ${id}`
-              );
+              console.log(`✅ Social hook generated for ${targetLang}: ${id}`);
             }
           } catch (error) {
             const errorMessage =
@@ -223,7 +214,7 @@ export class SocialService {
             results[targetLang] = {
               success: false,
               error: errorMessage,
-              method: "translated",
+              method: 'translated',
             };
           }
         }
@@ -238,7 +229,7 @@ export class SocialService {
       // Update source status if all hooks generated successfully
       const allSuccessful = Object.values(results).every((r) => r.success);
       if (allSuccessful) {
-        await ContentManager.updateSourceStatus(id, "social");
+        await ContentManager.updateSourceStatus(id, 'social');
         console.log(`🎉 All social hooks completed for: ${id}`);
       } else {
         console.log(`⚠️  Some social hooks failed for: ${id}`);
@@ -270,13 +261,13 @@ export class SocialService {
 
     // Truncate at last complete word before limit
     const truncated = hook.substring(0, maxLength);
-    const lastSpaceIndex = truncated.lastIndexOf(" ");
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
 
     if (lastSpaceIndex > maxLength * 0.8) {
       // Only truncate at word boundary if we don't lose too much
-      return truncated.substring(0, lastSpaceIndex) + "...";
+      return truncated.substring(0, lastSpaceIndex) + '...';
     } else {
-      return truncated.substring(0, maxLength - 3) + "...";
+      return truncated.substring(0, maxLength - 3) + '...';
     }
   }
 
@@ -294,14 +285,12 @@ export class SocialService {
     id: string,
     commandExecutor: CommandExecutor = executeCommandSync
   ): Promise<Record<string, SocialHookResult>> {
-    console.log(
-      `📱 Generating social hooks individually for: ${id}`
-    );
+    console.log(`📱 Generating social hooks individually for: ${id}`);
 
     // Check source status first
     const sourceContent = await ContentManager.readSource(id);
 
-    if (sourceContent.status !== "content") {
+    if (sourceContent.status !== 'content') {
       throw new Error(
         `Content must be uploaded before social hooks. Current status: ${sourceContent.status}`
       );
@@ -313,7 +302,8 @@ export class SocialService {
     // Get all languages that should have social hooks generated
     const socialHookLanguages = ContentSchema.getAllLanguages().filter(
       (lang) =>
-        availableLanguages.includes(lang) && this.shouldGenerateSocialHooks(lang)
+        availableLanguages.includes(lang) &&
+        this.shouldGenerateSocialHooks(lang)
     );
 
     const results: Record<string, SocialHookResult> = {};
@@ -326,7 +316,7 @@ export class SocialService {
         results[language] = {
           success: true,
           hook: validatedHook,
-          method: "generated",
+          method: 'generated',
         };
       } catch (error) {
         const errorMessage =
@@ -337,7 +327,7 @@ export class SocialService {
         results[language] = {
           success: false,
           error: errorMessage,
-          method: "generated",
+          method: 'generated',
         };
       }
     }
@@ -345,7 +335,7 @@ export class SocialService {
     // Update source status if all hooks generated successfully
     const allSuccessful = Object.values(results).every((r) => r.success);
     if (socialHookLanguages.length === 0 || allSuccessful) {
-      await ContentManager.updateSourceStatus(id, "social");
+      await ContentManager.updateSourceStatus(id, 'social');
     }
 
     return results;
@@ -360,18 +350,18 @@ export class SocialService {
     contentId: string | null = null
   ): Promise<string> {
     const languageMap: Record<string, string> = {
-      "zh-TW": "Traditional Chinese",
-      "en-US": "English",
-      "ja-JP": "Japanese",
+      'zh-TW': 'Traditional Chinese',
+      'en-US': 'English',
+      'ja-JP': 'Japanese',
     };
 
-    const langName = languageMap[language] || "English";
+    const langName = languageMap[language] || 'English';
 
     // Extract key insight (first meaningful paragraph)
-    const keyInsight = content.split("\n\n")[0] || content.substring(0, 200);
+    const keyInsight = content.split('\n\n')[0] || content.substring(0, 200);
 
     // Generate deep links if contentId is provided
-    let linkText = "";
+    let linkText = '';
     if (contentId) {
       const deepLink = `fromfedtochain://audio/${contentId}`;
       const webLink = `https://fromfedtochain.com/audio/${contentId}`;
@@ -395,7 +385,7 @@ Return only the hook text, no explanations.`;
       const claudeCommand = `claude -p ${JSON.stringify(prompt)}`;
 
       const hookResult = commandExecutor(claudeCommand, {
-        encoding: "utf-8",
+        encoding: 'utf-8',
         timeout: 60000,
         maxBuffer: 1024 * 1024,
       });
@@ -405,13 +395,13 @@ Return only the hook text, no explanations.`;
       // Add deep links if contentId provided
       return baseHook + linkText;
     } catch (error: unknown) {
-      if (error && typeof error === "object" && "code" in error) {
-        if (error.code === "ENOENT") {
+      if (error && typeof error === 'object' && 'code' in error) {
+        if (error.code === 'ENOENT') {
           throw new Error(
-            "Claude command not found. Install with: npm install -g claude-code"
+            'Claude command not found. Install with: npm install -g claude-code'
           );
-        } else if (error.code === "SIGTERM") {
-          throw new Error("Claude command timed out after 60 seconds");
+        } else if (error.code === 'SIGTERM') {
+          throw new Error('Claude command timed out after 60 seconds');
         }
       }
       const errorMessage =
@@ -422,24 +412,24 @@ Return only the hook text, no explanations.`;
 
   // Get content needing social hooks
   static async getContentNeedingSocial(): Promise<any[]> {
-    return ContentManager.getSourceByStatus("content");
+    return ContentManager.getSourceByStatus('content');
   }
 
   // Helper methods for configuration
   private static shouldGenerateSocialHooks(language: string): boolean {
     // Default configuration - can be enhanced with environment variables
-    return ["zh-TW", "en-US", "ja-JP"].includes(language);
+    return ['zh-TW', 'en-US', 'ja-JP'].includes(language);
   }
 
   private static getTranslationTargets(): string[] {
-    return ["en-US", "ja-JP"];
+    return ['en-US', 'ja-JP'];
   }
 
   private static getSocialConfig(language: string): SocialConfig {
     const configs: Record<string, SocialConfig> = {
-      "zh-TW": { hookLength: 180 },
-      "en-US": { hookLength: 200 },
-      "ja-JP": { hookLength: 200 },
+      'zh-TW': { hookLength: 180 },
+      'en-US': { hookLength: 200 },
+      'ja-JP': { hookLength: 200 },
     };
 
     return configs[language] || { hookLength: 200 };

@@ -1,26 +1,26 @@
 // Content types based on ContentSchema from FromFedToChain
 
-export type Language = "zh-TW" | "en-US" | "ja-JP";
+export type Language = 'zh-TW' | 'en-US' | 'ja-JP';
 
 export type Category =
-  | "daily-news"
-  | "ethereum"
-  | "macro"
-  | "startup"
-  | "ai"
-  | "defi";
+  | 'daily-news'
+  | 'ethereum'
+  | 'macro'
+  | 'startup'
+  | 'ai'
+  | 'defi';
 
 export type Status =
-  | "draft"
-  | "reviewed"
-  | "translated"
-  | "wav"
-  | "m3u8"
-  | "cloudflare"
-  | "content"
-  | "social";
+  | 'draft'
+  | 'reviewed'
+  | 'translated'
+  | 'wav'
+  | 'm3u8'
+  | 'cloudflare'
+  | 'content'
+  | 'social';
 
-export type ReviewStatus = "accepted" | "rejected";
+export type ReviewStatus = 'accepted' | 'rejected';
 
 export interface ContentReviewFeedback {
   status: ReviewStatus;
@@ -68,7 +68,7 @@ export interface PaginatedResponse<T> {
 }
 
 export interface ReviewSubmitRequest {
-  action: "accept" | "reject";
+  action: 'accept' | 'reject';
   feedback: string;
   newCategory?: Category;
 }

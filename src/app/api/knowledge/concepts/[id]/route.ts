@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { KnowledgeManager } from "@/lib/KnowledgeManager";
+import { NextRequest, NextResponse } from 'next/server';
+import { KnowledgeManager } from '@/lib/KnowledgeManager';
 
 /**
  * GET /api/knowledge/concepts/[id]
@@ -32,11 +32,11 @@ export async function GET(
       data: concept,
     });
   } catch (error) {
-    console.error("Failed to get concept:", error);
+    console.error('Failed to get concept:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to get concept",
+        error: error instanceof Error ? error.message : 'Failed to get concept',
       },
       { status: 500 }
     );

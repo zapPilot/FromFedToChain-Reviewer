@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Input } from "@/components/ui/input";
-import { Category } from "@/types/content";
-import { ContentSchema } from "@/lib/ContentSchema";
+import { Input } from '@/components/ui/input';
+import { Category } from '@/types/content';
+import { ContentSchema } from '@/lib/ContentSchema';
 
 interface FilterBarProps {
   category: string;

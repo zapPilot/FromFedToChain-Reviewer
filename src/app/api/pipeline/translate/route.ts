@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { TranslationService } from "@/lib/services/TranslationService";
+import { NextRequest, NextResponse } from 'next/server';
+import { TranslationService } from '@/lib/services/TranslationService';
 
 /**
  * POST /api/pipeline/translate
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Missing required parameter: contentId",
+          error: 'Missing required parameter: contentId',
         },
         { status: 400 }
       );
@@ -44,11 +44,11 @@ export async function POST(request: NextRequest) {
       message: `Translation completed for ${contentId}`,
     });
   } catch (error) {
-    console.error("Translation failed:", error);
+    console.error('Translation failed:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Translation failed",
+        error: error instanceof Error ? error.message : 'Translation failed',
       },
       { status: 500 }
     );
@@ -61,8 +61,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const content =
-      await TranslationService.getContentNeedingTranslation();
+    const content = await TranslationService.getContentNeedingTranslation();
 
     return NextResponse.json({
       success: true,
@@ -70,14 +69,14 @@ export async function GET(request: NextRequest) {
       count: content.length,
     });
   } catch (error) {
-    console.error("Failed to get content needing translation:", error);
+    console.error('Failed to get content needing translation:', error);
     return NextResponse.json(
       {
         success: false,
         error:
           error instanceof Error
             ? error.message
-            : "Failed to get content needing translation",
+            : 'Failed to get content needing translation',
       },
       { status: 500 }
     );

@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ContentManager } from "@/lib/ContentManager";
-import { ContentItem, PaginatedResponse } from "@/types/content";
+import { NextRequest, NextResponse } from 'next/server';
+import { ContentManager } from '@/lib/ContentManager';
+import { ContentItem, PaginatedResponse } from '@/types/content';
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const category = searchParams.get("category");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const search = searchParams.get("search");
+    const category = searchParams.get('category');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const search = searchParams.get('search');
 
     // Get all pending content for review
     let content = await ContentManager.getSourceForReview();
@@ -46,11 +46,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Error fetching pending content:", error);
+    console.error('Error fetching pending content:', error);
     return NextResponse.json(
       {
-        error: "Failed to fetch content",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to fetch content',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

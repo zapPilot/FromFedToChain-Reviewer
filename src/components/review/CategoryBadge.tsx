@@ -1,6 +1,6 @@
-import { Category } from "@/types/content";
-import { ContentSchema } from "@/lib/ContentSchema";
-import { Badge } from "@/components/ui/badge";
+import { Category } from '@/types/content';
+import { ContentSchema } from '@/lib/ContentSchema';
+import { Badge } from '@/components/ui/badge';
 
 interface CategoryBadgeProps {
   category: Category;

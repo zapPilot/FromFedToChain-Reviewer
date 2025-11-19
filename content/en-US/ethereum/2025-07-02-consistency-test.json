@@ -6,10 +6,7 @@
   "language": "en-US",
   "title": "Translated: Ethereum升級測試 (en)",
   "content": "Translated: 這是一個用於測試數據一致性的以太坊內容 en",
-  "references": [
-    "Ethereum Foundation",
-    "Vitalik Blog"
-  ],
+  "references": ["Ethereum Foundation", "Vitalik Blog"],
   "audio_file": null,
   "social_hook": "🔥 Ethereum upgrade test is here! What changes will this data consistency test bring to the blockchain? Want to learn more about the technical...",
   "feedback": {

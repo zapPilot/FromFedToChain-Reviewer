@@ -1,5 +1,5 @@
-import fs from "fs/promises";
-import path from "path";
+import fs from 'fs/promises';
+import path from 'path';
 import type {
   KnowledgeConcept,
   KnowledgeIndex,
@@ -8,27 +8,27 @@ import type {
   KnowledgeStats,
   CreateConceptData,
   ConceptSummary,
-} from "@/types/knowledge";
+} from '@/types/knowledge';
 
 /**
  * KnowledgeManager - Manages knowledge concept indexing
  * Provides concept creation, querying, updating and relationship management
  */
 export class KnowledgeManager {
-  static KNOWLEDGE_DIR = process.env.KNOWLEDGE_DIR ||
-    path.join(process.cwd(), "knowledge");
+  static KNOWLEDGE_DIR =
+    process.env.KNOWLEDGE_DIR || path.join(process.cwd(), 'knowledge');
   static CONCEPTS_DIR = path.join(
-    process.env.KNOWLEDGE_DIR || path.join(process.cwd(), "knowledge"),
-    "concepts"
+    process.env.KNOWLEDGE_DIR || path.join(process.cwd(), 'knowledge'),
+    'concepts'
   );
   static INDEX_FILE = path.join(
-    process.env.KNOWLEDGE_DIR || path.join(process.cwd(), "knowledge"),
-    "concepts",
-    "index.json"
+    process.env.KNOWLEDGE_DIR || path.join(process.cwd(), 'knowledge'),
+    'concepts',
+    'index.json'
   );
   static RELATIONSHIPS_FILE = path.join(
-    process.env.KNOWLEDGE_DIR || path.join(process.cwd(), "knowledge"),
-    "relationships.json"
+    process.env.KNOWLEDGE_DIR || path.join(process.cwd(), 'knowledge'),
+    'relationships.json'
   );
 
   // Initialize knowledge base structure
@@ -51,7 +51,7 @@ export class KnowledgeManager {
         await this.createEmptyRelationships();
       }
 
-      console.log("✅ Knowledge index initialized");
+      console.log('✅ Knowledge index initialized');
     } catch (error) {
       throw new Error(
         `Failed to initialize knowledge index: ${error instanceof Error ? error.message : String(error)}`
@@ -63,7 +63,7 @@ export class KnowledgeManager {
   static async createEmptyIndex(): Promise<void> {
     const emptyIndex: KnowledgeIndex = {
       concepts: [],
-      categories: ["經濟學", "技術", "商業", "政策", "歷史"],
+      categories: ['經濟學', '技術', '商業', '政策', '歷史'],
       total_concepts: 0,
       last_updated: new Date().toISOString(),
     };
@@ -75,11 +75,11 @@ export class KnowledgeManager {
     const emptyRelationships: KnowledgeRelationships = {
       relationships: [],
       relationship_types: [
-        "applies_to",
-        "reinforces",
-        "contrasts_with",
-        "prerequisite_for",
-        "example_of",
+        'applies_to',
+        'reinforces',
+        'contrasts_with',
+        'prerequisite_for',
+        'example_of',
       ],
       last_updated: new Date().toISOString(),
     };
@@ -92,7 +92,7 @@ export class KnowledgeManager {
   // Read index file
   static async readIndex(): Promise<KnowledgeIndex> {
     try {
-      const indexContent = await fs.readFile(this.INDEX_FILE, "utf-8");
+      const indexContent = await fs.readFile(this.INDEX_FILE, 'utf-8');
       return JSON.parse(indexContent) as KnowledgeIndex;
     } catch (error) {
       throw new Error(
@@ -119,10 +119,10 @@ export class KnowledgeManager {
   ): Promise<KnowledgeConcept> {
     // Validate required fields
     const requiredFields: (keyof CreateConceptData)[] = [
-      "id",
-      "name",
-      "definition",
-      "category",
+      'id',
+      'name',
+      'definition',
+      'category',
     ];
     for (const field of requiredFields) {
       if (!conceptData[field]) {
@@ -141,10 +141,10 @@ export class KnowledgeManager {
       id: conceptData.id,
       name: conceptData.name,
       definition: conceptData.definition,
-      context: conceptData.context || "",
+      context: conceptData.context || '',
       examples: conceptData.examples || [],
       category: conceptData.category,
-      first_introduced: conceptData.first_introduced || "",
+      first_introduced: conceptData.first_introduced || '',
       referenced_in: conceptData.referenced_in || [],
       related_concepts: conceptData.related_concepts || [],
       tags: conceptData.tags || [],
@@ -172,7 +172,9 @@ export class KnowledgeManager {
   }
 
   // Get concept by ID or name
-  static async getConcept(identifier: string): Promise<KnowledgeConcept | null> {
+  static async getConcept(
+    identifier: string
+  ): Promise<KnowledgeConcept | null> {
     try {
       // First try to find concept from index
       const index = await this.readIndex();
@@ -189,7 +191,7 @@ export class KnowledgeManager {
         this.CONCEPTS_DIR,
         `${conceptInfo.name}.json`
       );
-      const conceptContent = await fs.readFile(conceptFile, "utf-8");
+      const conceptContent = await fs.readFile(conceptFile, 'utf-8');
       return JSON.parse(conceptContent) as KnowledgeConcept;
     } catch (error) {
       return null;
@@ -225,10 +227,10 @@ export class KnowledgeManager {
         ];
 
         if (includeContext) {
-          searchFields.push(concept.context || "");
+          searchFields.push(concept.context || '');
         }
 
-        const searchText = searchFields.join(" ").toLowerCase();
+        const searchText = searchFields.join(' ').toLowerCase();
         const queryLower = query.toLowerCase();
 
         let isMatch = false;
@@ -308,7 +310,9 @@ export class KnowledgeManager {
   }
 
   // List all concepts
-  static async listConcepts(category: string | null = null): Promise<ConceptSummary[]> {
+  static async listConcepts(
+    category: string | null = null
+  ): Promise<ConceptSummary[]> {
     try {
       const index = await this.readIndex();
       let concepts = index.concepts;
@@ -356,10 +360,7 @@ export class KnowledgeManager {
 
     // If name changed, need to rename file
     const oldFile = path.join(this.CONCEPTS_DIR, `${concept.name}.json`);
-    const newFile = path.join(
-      this.CONCEPTS_DIR,
-      `${updatedConcept.name}.json`
-    );
+    const newFile = path.join(this.CONCEPTS_DIR, `${updatedConcept.name}.json`);
 
     await fs.writeFile(newFile, JSON.stringify(updatedConcept, null, 2));
 

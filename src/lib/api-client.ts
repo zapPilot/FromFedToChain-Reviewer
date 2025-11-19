@@ -6,15 +6,15 @@ import {
   ReviewSubmitResponse,
   ReviewStats,
   Category,
-} from "@/types/content";
+} from '@/types/content';
 
-const API_BASE = "/api";
+const API_BASE = '/api';
 
 class ApiClient {
   private async fetcher<T>(url: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${API_BASE}${url}`, {
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...options?.headers,
       },
       ...options,
@@ -22,9 +22,11 @@ class ApiClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({
-        message: "An error occurred",
+        message: 'An error occurred',
       }));
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+      throw new Error(
+        error.message || `HTTP error! status: ${response.status}`
+      );
     }
 
     return response.json();
@@ -38,13 +40,13 @@ class ApiClient {
     search?: string;
   }): Promise<PaginatedResponse<ContentItem>> {
     const searchParams = new URLSearchParams();
-    if (params?.category) searchParams.set("category", params.category);
-    if (params?.page) searchParams.set("page", params.page.toString());
-    if (params?.limit) searchParams.set("limit", params.limit.toString());
-    if (params?.search) searchParams.set("search", params.search);
+    if (params?.category) searchParams.set('category', params.category);
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.search) searchParams.set('search', params.search);
 
     const query = searchParams.toString();
-    return this.fetcher(`/review/pending${query ? `?${query}` : ""}`);
+    return this.fetcher(`/review/pending${query ? `?${query}` : ''}`);
   }
 
   // Get single content with navigation
@@ -58,7 +60,7 @@ class ApiClient {
     data: ReviewSubmitRequest
   ): Promise<ReviewSubmitResponse> {
     return this.fetcher(`/review/${id}/submit`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(data),
     });
   }
@@ -69,31 +71,31 @@ class ApiClient {
     category: Category
   ): Promise<{ success: boolean; content: ContentItem }> {
     return this.fetcher(`/review/${id}/category`, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify({ category }),
     });
   }
 
   // Get review stats
   async getStats(): Promise<ReviewStats> {
-    return this.fetcher("/review/stats");
+    return this.fetcher('/review/stats');
   }
 
   // Get review history
   async getReviewHistory(params?: {
     reviewer?: string;
-    decision?: "accepted" | "rejected";
+    decision?: 'accepted' | 'rejected';
     page?: number;
     limit?: number;
   }): Promise<PaginatedResponse<ContentItem>> {
     const searchParams = new URLSearchParams();
-    if (params?.reviewer) searchParams.set("reviewer", params.reviewer);
-    if (params?.decision) searchParams.set("decision", params.decision);
-    if (params?.page) searchParams.set("page", params.page.toString());
-    if (params?.limit) searchParams.set("limit", params.limit.toString());
+    if (params?.reviewer) searchParams.set('reviewer', params.reviewer);
+    if (params?.decision) searchParams.set('decision', params.decision);
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
 
     const query = searchParams.toString();
-    return this.fetcher(`/review/history${query ? `?${query}` : ""}`);
+    return this.fetcher(`/review/history${query ? `?${query}` : ''}`);
   }
 }
 

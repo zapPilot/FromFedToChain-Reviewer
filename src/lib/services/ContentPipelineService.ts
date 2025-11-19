@@ -1,14 +1,14 @@
-import { ContentManager } from "../ContentManager";
-import { ContentSchema } from "../ContentSchema";
-import { TranslationService } from "./TranslationService";
-import { AudioService } from "./AudioService";
-import { SocialService } from "./SocialService";
-import { M3U8AudioService } from "./M3U8AudioService";
-import { CloudflareR2Service } from "./CloudflareR2Service";
-import fs from "fs/promises";
-import path from "path";
-import { exec } from "child_process";
-import { promisify } from "util";
+import { ContentManager } from '../ContentManager';
+import { ContentSchema } from '../ContentSchema';
+import { TranslationService } from './TranslationService';
+import { AudioService } from './AudioService';
+import { SocialService } from './SocialService';
+import { M3U8AudioService } from './M3U8AudioService';
+import { CloudflareR2Service } from './CloudflareR2Service';
+import fs from 'fs/promises';
+import path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
@@ -83,8 +83,7 @@ export class ContentPipelineService {
     // Sort by date (newest first)
     return pendingContent.sort(
       (a, b) =>
-        new Date(b.content.date).getTime() -
-        new Date(a.content.date).getTime()
+        new Date(b.content.date).getTime() - new Date(a.content.date).getTime()
     );
   }
 
@@ -109,23 +108,17 @@ export class ContentPipelineService {
         return true;
       }
 
-      console.log(
-        `🔄 Processing ${id}: ${currentStatus} → ${step.nextStatus}`
-      );
+      console.log(`🔄 Processing ${id}: ${currentStatus} → ${step.nextStatus}`);
       console.log(`   ${step.description}`);
 
       // Execute the appropriate processing step
       const success = await this.executeProcessingStep(id, step);
 
       if (success) {
-        console.log(
-          `✅ ${id}: ${currentStatus} → ${step.nextStatus}`
-        );
+        console.log(`✅ ${id}: ${currentStatus} → ${step.nextStatus}`);
         return true;
       } else {
-        console.error(
-          `❌ Failed to process ${id} from ${currentStatus}`
-        );
+        console.error(`❌ Failed to process ${id} from ${currentStatus}`);
         return false;
       }
     } catch (error) {
@@ -145,26 +138,26 @@ export class ContentPipelineService {
   ): Promise<boolean> {
     try {
       switch (step.status) {
-        case "reviewed":
+        case 'reviewed':
           await TranslationService.translateAll(id);
-          await ContentManager.updateSourceStatus(id, "translated");
+          await ContentManager.updateSourceStatus(id, 'translated');
           return true;
 
-        case "translated":
+        case 'translated':
           await AudioService.generateWavOnly(id);
-          await ContentManager.updateSourceStatus(id, "wav");
+          await ContentManager.updateSourceStatus(id, 'wav');
           return true;
 
-        case "wav":
+        case 'wav':
           return await this.generateM3U8Step(id);
 
-        case "m3u8":
+        case 'm3u8':
           return await this.uploadToCloudflareStep(id);
 
-        case "cloudflare":
+        case 'cloudflare':
           return await this.uploadContentToCloudflareStep(id);
 
-        case "content":
+        case 'content':
           await SocialService.generateAllHooks(id);
           return true;
 
@@ -197,14 +190,12 @@ export class ContentPipelineService {
       );
 
       if (targetLanguages.length === 0) {
-        console.log(
-          `⚠️ No languages configured for M3U8 conversion`
-        );
+        console.log(`⚠️ No languages configured for M3U8 conversion`);
         return false;
       }
 
       console.log(
-        `📝 Converting M3U8 for ${targetLanguages.length} languages: ${targetLanguages.join(", ")}`
+        `📝 Converting M3U8 for ${targetLanguages.length} languages: ${targetLanguages.join(', ')}`
       );
 
       let allSuccessful = true;
@@ -239,7 +230,7 @@ export class ContentPipelineService {
       }
 
       if (allSuccessful) {
-        await ContentManager.updateSourceStatus(id, "m3u8");
+        await ContentManager.updateSourceStatus(id, 'm3u8');
       }
 
       return allSuccessful;
@@ -263,7 +254,7 @@ export class ContentPipelineService {
         await CloudflareR2Service.checkRcloneAvailability();
       if (!rcloneAvailable) {
         throw new Error(
-          "rclone not available. Please install and configure rclone for Cloudflare R2."
+          'rclone not available. Please install and configure rclone for Cloudflare R2.'
         );
       }
 
@@ -281,7 +272,7 @@ export class ContentPipelineService {
       }
 
       console.log(
-        `📤 Uploading to R2 for ${targetLanguages.length} languages: ${targetLanguages.join(", ")}`
+        `📤 Uploading to R2 for ${targetLanguages.length} languages: ${targetLanguages.join(', ')}`
       );
 
       let allSuccessful = true;
@@ -325,7 +316,7 @@ export class ContentPipelineService {
             );
             console.log(`✅ R2 upload completed for ${language}`);
           } else {
-            throw new Error(uploadResult.errors.join(", "));
+            throw new Error(uploadResult.errors.join(', '));
           }
         } catch (error) {
           const errorMessage =
@@ -337,16 +328,14 @@ export class ContentPipelineService {
 
       // Update source status to 'cloudflare' if all uploads successful
       if (allSuccessful && targetLanguages.length > 0) {
-        await ContentManager.updateSourceStatus(id, "cloudflare");
+        await ContentManager.updateSourceStatus(id, 'cloudflare');
       }
 
       return allSuccessful;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.error(
-        `❌ Cloudflare upload step failed: ${errorMessage}`
-      );
+      console.error(`❌ Cloudflare upload step failed: ${errorMessage}`);
       return false;
     }
   }
@@ -365,9 +354,7 @@ export class ContentPipelineService {
         throw new Error(`No content files found for: ${id}`);
       }
 
-      console.log(
-        `Found ${contentFiles.length} content file(s) to upload`
-      );
+      console.log(`Found ${contentFiles.length} content file(s) to upload`);
 
       // Upload each language version
       for (const contentFile of contentFiles) {
@@ -377,7 +364,7 @@ export class ContentPipelineService {
       console.log(
         `✅ Content uploaded successfully: ${contentFiles.length} files`
       );
-      await ContentManager.updateSourceStatus(id, "content");
+      await ContentManager.updateSourceStatus(id, 'content');
 
       return true;
     } catch (error) {
@@ -393,7 +380,7 @@ export class ContentPipelineService {
    */
   static async findContentFiles(id: string): Promise<ContentFile[]> {
     const contentFiles: ContentFile[] = [];
-    const contentDir = "content";
+    const contentDir = 'content';
 
     try {
       const languages = await fs.readdir(contentDir);
@@ -427,7 +414,7 @@ export class ContentPipelineService {
         }
       }
     } catch (error) {
-      console.error("Error finding content files:", error);
+      console.error('Error finding content files:', error);
     }
 
     return contentFiles;
@@ -483,17 +470,17 @@ export class ContentPipelineService {
    */
   static getPhaseColor(phase: string): string {
     const colors: Record<string, string> = {
-      translation: "cyan",
-      audio: "green",
-      content: "blue",
-      social: "magenta",
+      translation: 'cyan',
+      audio: 'green',
+      content: 'blue',
+      social: 'magenta',
     };
-    return colors[phase] || "white";
+    return colors[phase] || 'white';
   }
 
   // Helper methods for language configuration
   private static getAudioLanguages(): string[] {
-    return ["zh-TW", "en-US", "ja-JP"];
+    return ['zh-TW', 'en-US', 'ja-JP'];
   }
 
   private static shouldGenerateM3U8(language: string): boolean {
@@ -504,12 +491,13 @@ export class ContentPipelineService {
     return true; // All audio languages get uploaded to R2
   }
 
-  private static getM3U8Config(
-    language: string
-  ): { segmentDuration?: number; segmentFormat?: string } {
+  private static getM3U8Config(language: string): {
+    segmentDuration?: number;
+    segmentFormat?: string;
+  } {
     return {
       segmentDuration: 10,
-      segmentFormat: "ts",
+      segmentFormat: 'ts',
     };
   }
 }

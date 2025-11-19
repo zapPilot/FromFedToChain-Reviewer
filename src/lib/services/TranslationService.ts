@@ -1,6 +1,6 @@
-import { Translate } from "@google-cloud/translate/build/src/v2/index.js";
-import { ContentManager } from "../ContentManager";
-import path from "path";
+import { Translate } from '@google-cloud/translate/build/src/v2/index.js';
+import { ContentManager } from '../ContentManager';
+import path from 'path';
 
 interface TranslationResult {
   translatedTitle: string;
@@ -20,11 +20,11 @@ interface TranslationConfig {
  * TranslationService - Handles content translation using Google Cloud Translate API
  */
 export class TranslationService {
-  static SUPPORTED_LANGUAGES = ["en-US", "ja-JP"];
+  static SUPPORTED_LANGUAGES = ['en-US', 'ja-JP'];
   private static translate_client: Translate | null = null;
   private static SERVICE_ACCOUNT_PATH =
     process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-    path.resolve(process.cwd(), "service-account.json");
+    path.resolve(process.cwd(), 'service-account.json');
 
   // Initialize Google Cloud Translate client
   static getTranslateClient(): Translate {
@@ -39,13 +39,11 @@ export class TranslationService {
   // Get translation configuration for a language
   static getTranslationConfig(language: string): TranslationConfig {
     const configs: Record<string, TranslationConfig> = {
-      "zh-TW": { languageCode: "zh-TW", isTarget: false },
-      "en-US": { languageCode: "en", isTarget: true },
-      "ja-JP": { languageCode: "ja", isTarget: true },
+      'zh-TW': { languageCode: 'zh-TW', isTarget: false },
+      'en-US': { languageCode: 'en', isTarget: true },
+      'ja-JP': { languageCode: 'ja', isTarget: true },
     };
-    return (
-      configs[language] || { languageCode: language, isTarget: false }
-    );
+    return configs[language] || { languageCode: language, isTarget: false };
   }
 
   // Translate content to target language
@@ -62,7 +60,7 @@ export class TranslationService {
     // Get the source content (zh-TW)
     const sourceContent = await ContentManager.readSource(id);
 
-    if (sourceContent.status !== "reviewed") {
+    if (sourceContent.status !== 'reviewed') {
       throw new Error(
         `Content must be reviewed before translation. Current status: ${sourceContent.status}`
       );
@@ -89,10 +87,10 @@ export class TranslationService {
 
     // Update source status if all translations are complete
     const availableLanguages = await ContentManager.getAvailableLanguages(id);
-    const targetLanguages = ["zh-TW", ...this.SUPPORTED_LANGUAGES];
+    const targetLanguages = ['zh-TW', ...this.SUPPORTED_LANGUAGES];
 
     if (availableLanguages.length === targetLanguages.length) {
-      await ContentManager.updateSourceStatus(id, "translated");
+      await ContentManager.updateSourceStatus(id, 'translated');
     }
 
     console.log(`✅ Translation completed: ${id} (${targetLanguage})`);
@@ -125,7 +123,7 @@ export class TranslationService {
     text: string,
     targetLanguage: string
   ): Promise<string> {
-    const sourceConfig = this.getTranslationConfig("zh-TW");
+    const sourceConfig = this.getTranslationConfig('zh-TW');
     const targetConfig = this.getTranslationConfig(targetLanguage);
 
     const sourceLanguage = sourceConfig.languageCode;
@@ -143,18 +141,18 @@ export class TranslationService {
       const [translation] = await translateClient.translate(text, {
         from: sourceLanguage,
         to: targetLangCode,
-        format: "text",
+        format: 'text',
       });
 
       return translation;
     } catch (error: any) {
-      if (error.code === "ENOENT") {
+      if (error.code === 'ENOENT') {
         throw new Error(
-          "Google Cloud service account file not found. Please ensure service-account.json exists in the project root."
+          'Google Cloud service account file not found. Please ensure service-account.json exists in the project root.'
         );
-      } else if (error.code === "EACCES") {
+      } else if (error.code === 'EACCES') {
         throw new Error(
-          "Google Cloud authentication failed. Please check your service-account.json credentials."
+          'Google Cloud authentication failed. Please check your service-account.json credentials.'
         );
       } else {
         throw new Error(
@@ -170,7 +168,7 @@ export class TranslationService {
     targetLanguage: string
   ): Promise<string> {
     if (!hookText || !hookText.trim()) {
-      throw new Error("Hook text cannot be empty");
+      throw new Error('Hook text cannot be empty');
     }
 
     if (!this.SUPPORTED_LANGUAGES.includes(targetLanguage)) {
@@ -198,6 +196,6 @@ export class TranslationService {
 
   // Get content needing translation
   static async getContentNeedingTranslation() {
-    return ContentManager.getSourceByStatus("reviewed");
+    return ContentManager.getSourceByStatus('reviewed');
   }
 }

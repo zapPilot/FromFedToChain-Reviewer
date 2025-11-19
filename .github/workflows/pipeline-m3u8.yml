@@ -1,0 +1,80 @@
+name: Pipeline - M3U8 Conversion
+
+on:
+  workflow_dispatch:
+    inputs:
+      contentId:
+        description: 'Content ID to convert to M3U8'
+        required: true
+        type: string
+      language:
+        description: 'Target language (leave empty for all)'
+        required: false
+        type: string
+
+jobs:
+  convert-m3u8:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version
+
+      - name: Install dependencies
+        working-directory: ./FromFedToChain
+        run: npm ci
+
+      - name: Convert to M3U8
+        working-directory: ./FromFedToChain
+        run: |
+          node -e "
+            const { M3U8AudioService } = require('./src/services/M3U8AudioService.js');
+            const { ContentManager } = require('./src/ContentManager.js');
+
+            async function convertM3U8() {
+              const contentId = '${{ inputs.contentId }}';
+              console.log('Starting M3U8 conversion for:', contentId);
+
+              try {
+                const result = await M3U8AudioService.convertToM3U8(contentId);
+                console.log('M3U8 conversion completed:', JSON.stringify(result, null, 2));
+
+                // Update source content status
+                await ContentManager.updateSourceStatus(contentId, 'm3u8');
+                console.log('Status updated to: m3u8');
+              } catch (error) {
+                console.error('M3U8 conversion failed:', error.message);
+                process.exit(1);
+              }
+            }
+
+            convertM3U8();
+          "
+
+      - name: Commit M3U8 files
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add FromFedToChain/audio/m3u8/
+          git add FromFedToChain/content/
+          git diff --staged --quiet || git commit -m "M3U8 conversion: ${{ inputs.contentId }}"
+          git push
+
+      - name: Upload M3U8 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: m3u8-${{ inputs.contentId }}
+          path: FromFedToChain/audio/m3u8/**/*
+          retention-days: 7

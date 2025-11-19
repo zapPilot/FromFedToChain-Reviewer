@@ -1,7 +1,7 @@
-import fs from "fs/promises";
-import path from "path";
-import { GoogleTTSService } from "./GoogleTTSService";
-import { ContentManager } from "../ContentManager";
+import fs from 'fs/promises';
+import path from 'path';
+import { GoogleTTSService } from './GoogleTTSService';
+import { ContentManager } from '../ContentManager';
 
 // Configuration types
 interface AudioLanguageConfig {
@@ -16,7 +16,7 @@ interface AudioServiceResult {
 }
 
 export class AudioService {
-  static AUDIO_DIR = process.env.AUDIO_ROOT || "audio";
+  static AUDIO_DIR = process.env.AUDIO_ROOT || 'audio';
 
   // Generate WAV audio files only (no M3U8 or R2 upload)
   static async generateWavOnly(
@@ -25,7 +25,7 @@ export class AudioService {
     // Check source status first
     const sourceContent = await ContentManager.readSource(id);
 
-    if (sourceContent.status !== "translated") {
+    if (sourceContent.status !== 'translated') {
       throw new Error(
         `Content must be translated before audio generation. Current status: ${sourceContent.status}`
       );
@@ -49,7 +49,7 @@ export class AudioService {
     }
 
     console.log(
-      `📝 Generating WAV audio for ${targetLanguages.length} languages: ${targetLanguages.join(", ")}`
+      `📝 Generating WAV audio for ${targetLanguages.length} languages: ${targetLanguages.join(', ')}`
     );
 
     const results: Record<string, AudioServiceResult> = {};
@@ -110,7 +110,9 @@ export class AudioService {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        console.error(`❌ WAV generation failed for ${language}: ${errorMessage}`);
+        console.error(
+          `❌ WAV generation failed for ${language}: ${errorMessage}`
+        );
         results[language] = { success: false, error: errorMessage };
       }
     }
@@ -141,7 +143,7 @@ export class AudioService {
   private static getAudioLanguages(): string[] {
     // In the TypeScript version, we'll use environment variables or hardcoded defaults
     // This can be enhanced later with a proper config file
-    return ["zh-TW", "en-US", "ja-JP"];
+    return ['zh-TW', 'en-US', 'ja-JP'];
   }
 
   private static shouldGenerateAudio(language: string): boolean {
@@ -151,17 +153,17 @@ export class AudioService {
   private static getTTSConfig(language: string): AudioLanguageConfig {
     // Default TTS configurations
     const configs: Record<string, AudioLanguageConfig> = {
-      "zh-TW": {
-        languageCode: "zh-TW",
-        name: "cmn-TW-Wavenet-B",
+      'zh-TW': {
+        languageCode: 'zh-TW',
+        name: 'cmn-TW-Wavenet-B',
       },
-      "en-US": {
-        languageCode: "en-US",
-        name: "en-US-Neural2-F",
+      'en-US': {
+        languageCode: 'en-US',
+        name: 'en-US-Neural2-F',
       },
-      "ja-JP": {
-        languageCode: "ja-JP",
-        name: "ja-JP-Neural2-B",
+      'ja-JP': {
+        languageCode: 'ja-JP',
+        name: 'ja-JP-Neural2-B',
       },
     };
 

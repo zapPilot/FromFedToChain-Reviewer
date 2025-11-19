@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ContentManager } from "@/lib/ContentManager";
-import { ContentDetailResponse, NavigationInfo } from "@/types/content";
+import { NextRequest, NextResponse } from 'next/server';
+import { ContentManager } from '@/lib/ContentManager';
+import { ContentDetailResponse, NavigationInfo } from '@/types/content';
 
 export async function GET(
   request: NextRequest,
@@ -32,11 +32,11 @@ export async function GET(
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Error fetching content:", error);
+    console.error('Error fetching content:', error);
     return NextResponse.json(
       {
-        error: "Content not found",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Content not found',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 404 }
     );

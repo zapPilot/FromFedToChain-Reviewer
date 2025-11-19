@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from 'next/link';
 
 export function Header() {
   return (
@@ -9,18 +9,18 @@ export function Header() {
             <h1 className="text-2xl font-bold text-gray-900">
               From Fed to Chain
             </h1>
-            <p className="text-sm text-gray-500">Content Review System</p>
+            <p className="text-sm text-gray-600">Content Review System</p>
           </div>
           <nav className="flex gap-4">
             <Link
               href="/review"
-              className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+              className="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors"
             >
               Review Queue
             </Link>
             <Link
               href="/review/history"
-              className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+              className="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors"
             >
               History
             </Link>

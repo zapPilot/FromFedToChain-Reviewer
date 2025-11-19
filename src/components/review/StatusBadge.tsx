@@ -1,6 +1,6 @@
-import { Status } from "@/types/content";
-import { ContentSchema } from "@/lib/ContentSchema";
-import { Badge } from "@/components/ui/badge";
+import { Status } from '@/types/content';
+import { ContentSchema } from '@/lib/ContentSchema';
+import { Badge } from '@/components/ui/badge';
 
 interface StatusBadgeProps {
   status: Status;

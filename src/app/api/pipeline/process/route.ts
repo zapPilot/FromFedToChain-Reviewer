@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ContentPipelineService } from "@/lib/services/ContentPipelineService";
+import { NextRequest, NextResponse } from 'next/server';
+import { ContentPipelineService } from '@/lib/services/ContentPipelineService';
 
 /**
  * POST /api/pipeline/process
@@ -18,14 +18,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Missing required parameter: contentId",
+          error: 'Missing required parameter: contentId',
         },
         { status: 400 }
       );
     }
 
     console.log(
-      `🚀 Starting pipeline processing for content: ${contentId}${startFrom ? ` (from: ${startFrom})` : ""}`
+      `🚀 Starting pipeline processing for content: ${contentId}${startFrom ? ` (from: ${startFrom})` : ''}`
     );
 
     // Process content through pipeline
@@ -40,14 +40,12 @@ export async function POST(request: NextRequest) {
       message: `Pipeline processing completed for ${contentId}`,
     });
   } catch (error) {
-    console.error("Pipeline processing failed:", error);
+    console.error('Pipeline processing failed:', error);
     return NextResponse.json(
       {
         success: false,
         error:
-          error instanceof Error
-            ? error.message
-            : "Pipeline processing failed",
+          error instanceof Error ? error.message : 'Pipeline processing failed',
       },
       { status: 500 }
     );
@@ -64,20 +62,20 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const contentId = searchParams.get("contentId");
+    const contentId = searchParams.get('contentId');
 
     if (!contentId) {
       return NextResponse.json(
         {
           success: false,
-          error: "Missing required parameter: contentId",
+          error: 'Missing required parameter: contentId',
         },
         { status: 400 }
       );
     }
 
     // Get content status through ContentManager
-    const { ContentManager } = await import("@/lib/ContentManager");
+    const { ContentManager } = await import('@/lib/ContentManager');
     const sourceContent = await ContentManager.readSource(contentId);
 
     return NextResponse.json({
@@ -91,14 +89,14 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Failed to get pipeline status:", error);
+    console.error('Failed to get pipeline status:', error);
     return NextResponse.json(
       {
         success: false,
         error:
           error instanceof Error
             ? error.message
-            : "Failed to get pipeline status",
+            : 'Failed to get pipeline status',
       },
       { status: 500 }
     );

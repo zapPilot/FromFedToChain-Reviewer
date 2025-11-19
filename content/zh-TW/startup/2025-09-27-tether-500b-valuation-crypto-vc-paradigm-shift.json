@@ -38,7 +38,13 @@
     "cbdc-competition"
   ],
   "feedback": {
-    "content_review": null
+    "content_review": {
+      "status": "rejected",
+      "score": 2,
+      "reviewer": "reviewer_web",
+      "timestamp": "2025-11-18T13:07:19.132Z",
+      "comments": "感覺講的都是我會的啊"
+    }
   },
-  "updated_at": "2025-09-27T00:00:00.000Z"
+  "updated_at": "2025-11-18T13:07:19.132Z"
 }

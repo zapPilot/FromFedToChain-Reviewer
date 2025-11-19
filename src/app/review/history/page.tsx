@@ -1,19 +1,22 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
-import { ContentCard } from "@/components/review/ContentCard";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api-client';
+import { ContentCard } from '@/components/review/ContentCard';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 export default function ReviewHistoryPage() {
   const [page, setPage] = useState(1);
-  const [decision, setDecision] = useState<"accepted" | "rejected" | "">("");
+  const [decision, setDecision] = useState<'accepted' | 'rejected' | ''>('');
   const limit = 12;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["review-history", { page, limit, decision: decision || undefined }],
+    queryKey: [
+      'review-history',
+      { page, limit, decision: decision || undefined },
+    ],
     queryFn: () =>
       apiClient.getReviewHistory({
         page,
@@ -31,7 +34,7 @@ export default function ReviewHistoryPage() {
         <h2 className="text-3xl font-bold text-gray-900 mb-2">
           Review History
         </h2>
-        <p className="text-gray-600">
+        <p className="text-gray-700">
           View all reviewed content with decisions
         </p>
       </div>
@@ -68,7 +71,7 @@ export default function ReviewHistoryPage() {
                 {/* Show review decision badge */}
                 {item.feedback?.content_review && (
                   <div className="absolute top-2 right-2">
-                    {item.feedback.content_review.status === "accepted" ? (
+                    {item.feedback.content_review.status === 'accepted' ? (
                       <span className="bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
                         ✓ Accepted
                       </span>
@@ -93,7 +96,7 @@ export default function ReviewHistoryPage() {
               >
                 Previous
               </Button>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-700">
                 Page {page} of {pagination.totalPages}
               </span>
               <Button
@@ -115,10 +118,10 @@ export default function ReviewHistoryPage() {
           <h3 className="text-xl font-medium text-gray-900 mb-2">
             No review history
           </h3>
-          <p className="text-gray-500">
+          <p className="text-gray-600">
             {decision
               ? `No ${decision} content found`
-              : "Start reviewing content to see history"}
+              : 'Start reviewing content to see history'}
           </p>
         </div>
       )}
