@@ -2,6 +2,11 @@ import { execSync } from 'child_process';
 import { ContentManager } from '../ContentManager';
 import { ContentSchema } from '../ContentSchema';
 import { TranslationService } from './TranslationService';
+import {
+  getSocialConfig,
+  getTranslationTargets,
+  shouldGenerateSocialHooks,
+} from '@/config/languages';
 
 // Command executor type
 type CommandExecutor = (command: string, options?: any) => Buffer | string;
@@ -18,15 +23,11 @@ interface SocialHookResult {
   method?: string;
 }
 
-interface SocialConfig {
-  hookLength: number;
-}
-
 export class SocialService {
   // Dynamic language support based on configuration
   static get SUPPORTED_LANGUAGES(): string[] {
     return ContentSchema.getAllLanguages().filter((lang) =>
-      this.shouldGenerateSocialHooks(lang)
+      shouldGenerateSocialHooks(lang)
     );
   }
 
@@ -88,8 +89,7 @@ export class SocialService {
     // Get all languages that should have social hooks generated
     const socialHookLanguages = ContentSchema.getAllLanguages().filter(
       (lang) =>
-        availableLanguages.includes(lang) &&
-        this.shouldGenerateSocialHooks(lang)
+        availableLanguages.includes(lang) && shouldGenerateSocialHooks(lang)
     );
 
     if (socialHookLanguages.length === 0) {
@@ -158,7 +158,7 @@ export class SocialService {
         const otherLanguages = socialHookLanguages.filter(
           (lang) => lang !== sourceLang
         );
-        const translationTargets = this.getTranslationTargets(); // en-US, ja-JP
+        const translationTargets = getTranslationTargets();
 
         for (const targetLang of otherLanguages) {
           try {
@@ -248,7 +248,7 @@ export class SocialService {
 
   // Validate hook length and truncate if necessary
   static validateHookLength(hook: string, language: string): string {
-    const socialConfig = this.getSocialConfig(language);
+    const socialConfig = getSocialConfig(language);
     const maxLength = socialConfig.hookLength;
 
     if (hook.length <= maxLength) {
@@ -302,8 +302,7 @@ export class SocialService {
     // Get all languages that should have social hooks generated
     const socialHookLanguages = ContentSchema.getAllLanguages().filter(
       (lang) =>
-        availableLanguages.includes(lang) &&
-        this.shouldGenerateSocialHooks(lang)
+        availableLanguages.includes(lang) && shouldGenerateSocialHooks(lang)
     );
 
     const results: Record<string, SocialHookResult> = {};
@@ -416,22 +415,4 @@ Return only the hook text, no explanations.`;
   }
 
   // Helper methods for configuration
-  private static shouldGenerateSocialHooks(language: string): boolean {
-    // Default configuration - can be enhanced with environment variables
-    return ['zh-TW', 'en-US', 'ja-JP'].includes(language);
-  }
-
-  private static getTranslationTargets(): string[] {
-    return ['en-US', 'ja-JP'];
-  }
-
-  private static getSocialConfig(language: string): SocialConfig {
-    const configs: Record<string, SocialConfig> = {
-      'zh-TW': { hookLength: 180 },
-      'en-US': { hookLength: 200 },
-      'ja-JP': { hookLength: 200 },
-    };
-
-    return configs[language] || { hookLength: 200 };
-  }
 }

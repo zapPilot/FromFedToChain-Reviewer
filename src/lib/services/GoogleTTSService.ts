@@ -17,7 +17,12 @@ interface SynthesisResponse {
 export class GoogleTTSService {
   private client: TextToSpeechClient;
 
-  constructor() {
+  constructor(client?: TextToSpeechClient) {
+    if (client) {
+      this.client = client;
+      return;
+    }
+
     const serviceAccountPath =
       process.env.GOOGLE_APPLICATION_CREDENTIALS ||
       path.resolve(process.cwd(), 'service-account.json');

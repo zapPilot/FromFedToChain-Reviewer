@@ -5,6 +5,7 @@ import {
   ContentReviewFeedback,
   Category,
   Status,
+  Language,
 } from '@/types/content';
 import { ContentSchema } from './ContentSchema';
 
@@ -63,9 +64,58 @@ export class ContentManager {
     throw new Error(`Content not found: ${id}`);
   }
 
+  // Create a new content file for a given language
+  static async create(
+    id: string,
+    category: Category,
+    language: Language,
+    title: string,
+    content: string,
+    references: string[] = [],
+    framework = ''
+  ): Promise<ContentItem> {
+    const contentData = ContentSchema.createContent(
+      id,
+      category,
+      language,
+      title,
+      content,
+      references,
+      framework
+    );
+
+    ContentSchema.validate(contentData);
+
+    const dir = path.join(this.CONTENT_DIR, language, category);
+    await fs.mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, `${id}.json`);
+    await fs.writeFile(filePath, JSON.stringify(contentData, null, 2));
+
+    return contentData;
+  }
+
   // Read source content specifically (zh-TW)
   static async readSource(id: string): Promise<ContentItem> {
     return this.read(id, 'zh-TW');
+  }
+
+  static async createSource(
+    id: string,
+    category: Category,
+    title: string,
+    content: string,
+    references: string[] = [],
+    framework = ''
+  ) {
+    return this.create(
+      id,
+      category,
+      'zh-TW',
+      title,
+      content,
+      references,
+      framework
+    );
   }
 
   // List all content with optional status filter
@@ -112,6 +162,10 @@ export class ContentManager {
     );
   }
 
+  static async getSourceByStatus(status: Status) {
+    return this.list(status, 'zh-TW');
+  }
+
   // Get source content for review (excludes rejected content)
   static async getSourceForReview(): Promise<ContentItem[]> {
     const draftContent = await this.list('draft', 'zh-TW');
@@ -155,6 +209,10 @@ export class ContentManager {
     status: Status
   ): Promise<ContentItem> {
     return this.update(id, { status }, 'zh-TW');
+  }
+
+  static async updateStatus(id: string, status: Status) {
+    return this.update(id, { status });
   }
 
   // Update category for source content
@@ -249,6 +307,86 @@ export class ContentManager {
   // Get content by status
   static async getByStatus(status: Status): Promise<ContentItem[]> {
     return this.list(status);
+  }
+
+  static async addTranslation(
+    id: string,
+    targetLanguage: Language,
+    title: string,
+    body: string,
+    framework: string,
+    knowledgeConcepts: string[] = []
+  ) {
+    const sourceContent = await this.read(id, 'zh-TW');
+    const translation = ContentSchema.createContent(
+      id,
+      sourceContent.category,
+      targetLanguage,
+      title,
+      body,
+      sourceContent.references,
+      framework
+    );
+    translation.status = 'translated';
+    if (knowledgeConcepts.length) {
+      translation.knowledge_concepts_used = knowledgeConcepts;
+    }
+
+    const dir = path.join(
+      this.CONTENT_DIR,
+      targetLanguage,
+      sourceContent.category
+    );
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(
+      path.join(dir, `${id}.json`),
+      JSON.stringify(translation, null, 2)
+    );
+
+    return translation;
+  }
+
+  static async addAudio(
+    id: string,
+    language: string,
+    audioPath: string,
+    streamingUrls: Record<string, unknown> = {}
+  ) {
+    const updates: Partial<ContentItem> = { audio_file: audioPath };
+    if (Object.keys(streamingUrls).length) {
+      updates.streaming_urls = streamingUrls as ContentItem['streaming_urls'];
+    }
+    return this.update(id, updates, language);
+  }
+
+  static async addSocialHook(id: string, language: string, hook: string) {
+    return this.update(id, { social_hook: hook }, language);
+  }
+
+  static async getAllLanguagesForId(id: string) {
+    const allContent: ContentItem[] = [];
+    for (const lang of ContentSchema.getAllLanguages()) {
+      try {
+        const content = await this.read(id, lang);
+        allContent.push(content);
+      } catch (error) {
+        // language missing - skip
+      }
+    }
+    return allContent;
+  }
+
+  static async getAvailableLanguages(id: string) {
+    const languages: string[] = [];
+    for (const lang of ContentSchema.getAllLanguages()) {
+      try {
+        await this.read(id, lang);
+        languages.push(lang);
+      } catch (error) {
+        // skip missing language
+      }
+    }
+    return languages;
   }
 
   // Get review history (content with feedback)

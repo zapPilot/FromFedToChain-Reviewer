@@ -5,6 +5,12 @@ import { AudioService } from './AudioService';
 import { SocialService } from './SocialService';
 import { M3U8AudioService } from './M3U8AudioService';
 import { CloudflareR2Service } from './CloudflareR2Service';
+import {
+  getAudioLanguages,
+  getM3U8Config,
+  shouldGenerateM3U8,
+  shouldUploadToR2,
+} from '@/config/languages';
 import fs from 'fs/promises';
 import path from 'path';
 import { exec } from 'child_process';
@@ -184,9 +190,9 @@ export class ContentPipelineService {
       const availableLanguages = await ContentManager.getAvailableLanguages(id);
 
       // Language configuration
-      const audioLanguages = this.getAudioLanguages();
+      const audioLanguages = getAudioLanguages();
       const targetLanguages = availableLanguages.filter(
-        (lang) => audioLanguages.includes(lang) && this.shouldGenerateM3U8(lang)
+        (lang) => audioLanguages.includes(lang) && shouldGenerateM3U8(lang)
       );
 
       if (targetLanguages.length === 0) {
@@ -209,7 +215,7 @@ export class ContentPipelineService {
             throw new Error(`No audio file found for ${language}`);
           }
 
-          const m3u8Config = this.getM3U8Config(language);
+          const m3u8Config = getM3U8Config(language);
           const m3u8Result = await M3U8AudioService.convertToM3U8(
             audioPath,
             id,
@@ -261,9 +267,9 @@ export class ContentPipelineService {
       // Get available languages for this content
       const availableLanguages = await ContentManager.getAvailableLanguages(id);
 
-      const audioLanguages = this.getAudioLanguages();
+      const audioLanguages = getAudioLanguages();
       const targetLanguages = availableLanguages.filter(
-        (lang) => audioLanguages.includes(lang) && this.shouldUploadToR2(lang)
+        (lang) => audioLanguages.includes(lang) && shouldUploadToR2(lang)
       );
 
       if (targetLanguages.length === 0) {
@@ -476,28 +482,5 @@ export class ContentPipelineService {
       social: 'magenta',
     };
     return colors[phase] || 'white';
-  }
-
-  // Helper methods for language configuration
-  private static getAudioLanguages(): string[] {
-    return ['zh-TW', 'en-US', 'ja-JP'];
-  }
-
-  private static shouldGenerateM3U8(language: string): boolean {
-    return true; // All audio languages get M3U8 conversion
-  }
-
-  private static shouldUploadToR2(language: string): boolean {
-    return true; // All audio languages get uploaded to R2
-  }
-
-  private static getM3U8Config(language: string): {
-    segmentDuration?: number;
-    segmentFormat?: string;
-  } {
-    return {
-      segmentDuration: 10,
-      segmentFormat: 'ts',
-    };
   }
 }

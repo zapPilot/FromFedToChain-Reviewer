@@ -2,12 +2,11 @@ import fs from 'fs/promises';
 import path from 'path';
 import { GoogleTTSService } from './GoogleTTSService';
 import { ContentManager } from '../ContentManager';
-
-// Configuration types
-interface AudioLanguageConfig {
-  languageCode: string;
-  name: string;
-}
+import {
+  getAudioLanguages,
+  getTTSConfig,
+  shouldGenerateAudio,
+} from '@/config/languages';
 
 interface AudioServiceResult {
   success: boolean;
@@ -35,7 +34,7 @@ export class AudioService {
     const availableLanguages = await ContentManager.getAvailableLanguages(id);
 
     // Get all languages that should have audio generated
-    const audioLanguages = this.getAudioLanguages();
+    const audioLanguages = getAudioLanguages();
 
     // Find intersection of available languages and configured audio languages
     const targetLanguages = availableLanguages.filter((lang) =>
@@ -59,7 +58,7 @@ export class AudioService {
         console.log(`🎙️ Generating WAV audio: ${id} (${language})`);
 
         // Check if this language should have audio generated
-        if (!this.shouldGenerateAudio(language)) {
+        if (!shouldGenerateAudio(language)) {
           throw new Error(
             `Audio generation not configured for language: ${language}`
           );
@@ -73,7 +72,7 @@ export class AudioService {
         }
 
         // Get TTS configuration for this language
-        const ttsConfig = this.getTTSConfig(language);
+        const ttsConfig = getTTSConfig(language);
         const voiceConfig = {
           languageCode: ttsConfig.languageCode,
           name: ttsConfig.name,
@@ -137,41 +136,5 @@ export class AudioService {
     await fs.writeFile(filePath, audioContent);
 
     return filePath;
-  }
-
-  // Helper methods for language configuration
-  private static getAudioLanguages(): string[] {
-    // In the TypeScript version, we'll use environment variables or hardcoded defaults
-    // This can be enhanced later with a proper config file
-    return ['zh-TW', 'en-US', 'ja-JP'];
-  }
-
-  private static shouldGenerateAudio(language: string): boolean {
-    return this.getAudioLanguages().includes(language);
-  }
-
-  private static getTTSConfig(language: string): AudioLanguageConfig {
-    // Default TTS configurations
-    const configs: Record<string, AudioLanguageConfig> = {
-      'zh-TW': {
-        languageCode: 'zh-TW',
-        name: 'cmn-TW-Wavenet-B',
-      },
-      'en-US': {
-        languageCode: 'en-US',
-        name: 'en-US-Neural2-F',
-      },
-      'ja-JP': {
-        languageCode: 'ja-JP',
-        name: 'ja-JP-Neural2-B',
-      },
-    };
-
-    return (
-      configs[language] || {
-        languageCode: language,
-        name: `${language}-Wavenet-A`,
-      }
-    );
   }
 }

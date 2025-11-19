@@ -1,6 +1,10 @@
 import { Translate } from '@google-cloud/translate/build/src/v2/index.js';
 import { ContentManager } from '../ContentManager';
 import path from 'path';
+import {
+  getTranslationConfig,
+  getTranslationTargets,
+} from '@/config/languages';
 
 interface TranslationResult {
   translatedTitle: string;
@@ -11,16 +15,11 @@ interface TranslationResults {
   [key: string]: TranslationResult | { error: string };
 }
 
-interface TranslationConfig {
-  languageCode: string;
-  isTarget: boolean;
-}
-
 /**
  * TranslationService - Handles content translation using Google Cloud Translate API
  */
 export class TranslationService {
-  static SUPPORTED_LANGUAGES = ['en-US', 'ja-JP'];
+  static SUPPORTED_LANGUAGES = getTranslationTargets();
   private static translate_client: Translate | null = null;
   private static SERVICE_ACCOUNT_PATH =
     process.env.GOOGLE_APPLICATION_CREDENTIALS ||
@@ -34,16 +33,6 @@ export class TranslationService {
       });
     }
     return this.translate_client;
-  }
-
-  // Get translation configuration for a language
-  static getTranslationConfig(language: string): TranslationConfig {
-    const configs: Record<string, TranslationConfig> = {
-      'zh-TW': { languageCode: 'zh-TW', isTarget: false },
-      'en-US': { languageCode: 'en', isTarget: true },
-      'ja-JP': { languageCode: 'ja', isTarget: true },
-    };
-    return configs[language] || { languageCode: language, isTarget: false };
   }
 
   // Translate content to target language
@@ -123,8 +112,8 @@ export class TranslationService {
     text: string,
     targetLanguage: string
   ): Promise<string> {
-    const sourceConfig = this.getTranslationConfig('zh-TW');
-    const targetConfig = this.getTranslationConfig(targetLanguage);
+    const sourceConfig = getTranslationConfig('zh-TW');
+    const targetConfig = getTranslationConfig(targetLanguage);
 
     const sourceLanguage = sourceConfig.languageCode;
     const targetLangCode = targetConfig.languageCode;
