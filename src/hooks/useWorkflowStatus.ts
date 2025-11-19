@@ -3,6 +3,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import type { Query } from '@tanstack/query-core';
 import { githubClient, WorkflowName, WorkflowRun } from '@/lib/github-client';
 
 export interface UseWorkflowStatusOptions {
@@ -12,14 +13,42 @@ export interface UseWorkflowStatusOptions {
   pollingInterval?: number; // in milliseconds
 }
 
+type WorkflowStatusQueryKey = ['workflow-status', WorkflowName, string];
+
+interface WorkflowStatusResult {
+  run: WorkflowRun | null;
+  isRunning: boolean;
+  isComplete: boolean;
+  isSuccess: boolean;
+  isFailed: boolean;
+}
+
+type WorkflowStatusQuery = Query<
+  WorkflowStatusResult,
+  Error,
+  WorkflowStatusResult,
+  WorkflowStatusQueryKey
+>;
+
 export function useWorkflowStatus({
   workflowFile,
   contentId,
   enabled = true,
   pollingInterval = 10000, // 10 seconds default
 }: UseWorkflowStatusOptions) {
-  const query = useQuery({
-    queryKey: ['workflow-status', workflowFile, contentId],
+  const queryKey: WorkflowStatusQueryKey = [
+    'workflow-status',
+    workflowFile,
+    contentId,
+  ];
+
+  const query = useQuery<
+    WorkflowStatusResult,
+    Error,
+    WorkflowStatusResult,
+    WorkflowStatusQueryKey
+  >({
+    queryKey,
     queryFn: async () => {
       const runs = await githubClient.getWorkflowRuns(workflowFile, 20);
 
@@ -37,10 +66,12 @@ export function useWorkflowStatus({
       };
     },
     enabled: enabled && githubClient.isConfigured(),
-    refetchInterval: (data) => {
-      // Stop polling when workflow is complete
-      if (!data) return pollingInterval;
-      return data.isRunning ? pollingInterval : false;
+    refetchInterval: (queryInstance: WorkflowStatusQuery) => {
+      const latest = queryInstance.state.data as
+        | WorkflowStatusResult
+        | undefined;
+      if (!latest) return pollingInterval;
+      return latest.isRunning ? pollingInterval : false;
     },
     retry: 3,
     retryDelay: 1000,

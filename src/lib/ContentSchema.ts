@@ -1,5 +1,14 @@
 import { Language, Category, Status, ContentItem } from '@/types/content';
 
+export interface PipelineConfigEntry {
+  status: Status;
+  nextStatus: Status | null;
+  service: string;
+  method: string;
+  description: string;
+  phase: string;
+}
+
 export class ContentSchema {
   static createContent(
     id: string,
@@ -207,7 +216,7 @@ export class ContentSchema {
     );
   }
 
-  static getPipelineConfig() {
+  static getPipelineConfig(): PipelineConfigEntry[] {
     return [
       {
         status: 'reviewed',

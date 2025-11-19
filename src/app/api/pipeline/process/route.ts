@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ContentPipelineService } from '@/lib/services/ContentPipelineService';
+import { ContentSchema } from '@/lib/ContentSchema';
+import type { Status } from '@/types/content';
 
 /**
  * POST /api/pipeline/process
@@ -29,9 +31,24 @@ export async function POST(request: NextRequest) {
     );
 
     // Process content through pipeline
+    let startStatus: Status | undefined;
+    if (startFrom) {
+      const allowed = ContentSchema.getStatuses();
+      if (!allowed.includes(startFrom as Status)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid pipeline step: ${startFrom}`,
+          },
+          { status: 400 }
+        );
+      }
+      startStatus = startFrom as Status;
+    }
+
     const result = await ContentPipelineService.processContent(
       contentId,
-      startFrom
+      startStatus
     );
 
     return NextResponse.json({

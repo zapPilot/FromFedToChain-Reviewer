@@ -4,6 +4,7 @@ import fs from 'fs/promises';
 import { ContentManager } from '@/lib/ContentManager';
 import { TranslationService } from '@/lib/services/TranslationService';
 import { TestUtils } from './setup';
+import type { Language } from '@/types/content';
 
 const CONTENT_ID = '2025-07-01-translation-test';
 
@@ -113,7 +114,7 @@ describe('TranslationService', () => {
 
   it('throws when translating unsupported language', async () => {
     await expect(
-      TranslationService.translateText('text', 'es-ES')
+      TranslationService.translateText('text', 'es-ES' as unknown as Language)
     ).rejects.toThrow('Unsupported language: es-ES');
   });
 

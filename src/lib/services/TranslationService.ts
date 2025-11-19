@@ -5,21 +5,22 @@ import {
   getTranslationConfig,
   getTranslationTargets,
 } from '@/config/languages';
+import type { Language } from '@/types/content';
 
 interface TranslationResult {
   translatedTitle: string;
   translatedContent: string;
 }
 
-interface TranslationResults {
-  [key: string]: TranslationResult | { error: string };
-}
+type TranslationResults = Partial<
+  Record<Language, TranslationResult | { error: string }>
+>;
 
 /**
  * TranslationService - Handles content translation using Google Cloud Translate API
  */
 export class TranslationService {
-  static SUPPORTED_LANGUAGES = getTranslationTargets();
+  static SUPPORTED_LANGUAGES: Language[] = getTranslationTargets();
   private static translate_client: Translate | null = null;
   private static SERVICE_ACCOUNT_PATH =
     process.env.GOOGLE_APPLICATION_CREDENTIALS ||
@@ -38,7 +39,7 @@ export class TranslationService {
   // Translate content to target language
   static async translate(
     id: string,
-    targetLanguage: string
+    targetLanguage: Language
   ): Promise<TranslationResult> {
     if (!this.SUPPORTED_LANGUAGES.includes(targetLanguage)) {
       throw new Error(`Unsupported language: ${targetLanguage}`);
@@ -70,13 +71,13 @@ export class TranslationService {
       targetLanguage,
       translatedTitle,
       translatedContent,
-      sourceContent.framework,
+      sourceContent.framework ?? '',
       knowledgeConcepts
     );
 
     // Update source status if all translations are complete
     const availableLanguages = await ContentManager.getAvailableLanguages(id);
-    const targetLanguages = ['zh-TW', ...this.SUPPORTED_LANGUAGES];
+    const targetLanguages: Language[] = ['zh-TW', ...this.SUPPORTED_LANGUAGES];
 
     if (availableLanguages.length === targetLanguages.length) {
       await ContentManager.updateSourceStatus(id, 'translated');
@@ -110,7 +111,7 @@ export class TranslationService {
   // Translate text using Google Cloud Translate API
   static async translateText(
     text: string,
-    targetLanguage: string
+    targetLanguage: Language
   ): Promise<string> {
     const sourceConfig = getTranslationConfig('zh-TW');
     const targetConfig = getTranslationConfig(targetLanguage);
@@ -154,7 +155,7 @@ export class TranslationService {
   // Translate social hook text
   static async translateSocialHook(
     hookText: string,
-    targetLanguage: string
+    targetLanguage: Language
   ): Promise<string> {
     if (!hookText || !hookText.trim()) {
       throw new Error('Hook text cannot be empty');

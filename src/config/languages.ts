@@ -161,13 +161,13 @@ const getConfig = (language: string): LanguageSettings => {
   return config;
 };
 
-export const getAudioLanguages = (): string[] => {
+export const getAudioLanguages = (): LanguageKey[] => {
   return LANGUAGES.SUPPORTED.filter(
     (lang) => LANGUAGE_CONFIG[lang].contentProcessing.generateAudio
   );
 };
 
-export const getTranslationTargets = (): string[] => {
+export const getTranslationTargets = (): LanguageKey[] => {
   return LANGUAGES.TRANSLATION_TARGETS;
 };
 
@@ -243,3 +243,10 @@ export const VOICE_CONFIG = Object.fromEntries(
     },
   ])
 );
+
+export const isSupportedLanguage = (value: unknown): value is LanguageKey => {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return (LANGUAGES.SUPPORTED as string[]).includes(value);
+};

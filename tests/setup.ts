@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { afterEach } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import type { ContentItem, Language, Status } from '@/types/content';
 
 export const FIXED_NOW = new Date('2025-07-01T00:00:00.000Z');

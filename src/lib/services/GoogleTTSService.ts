@@ -285,7 +285,7 @@ export class GoogleTTSService {
     return this.forceSplitText(chunk, maxBytes);
   }
 
-  static prepareContentForTTS(content: string, language: string): string {
+  static prepareContentForTTS(content: string, language?: string): string {
     // Clean content for TTS - removes markdown formatting and optimizes for speech
     if (typeof content !== 'string') {
       return content;

@@ -114,8 +114,19 @@ describe('End-to-end workflow', () => {
 
     const results = await TranslationService.translateAll(contentId);
 
-    expect(results['en-US'].translatedTitle).toBe('English: Recovery Test');
-    expect(results['ja-JP'].error).toContain('Japanese translation service');
+    const englishResult = results['en-US'];
+    expect(englishResult).toBeDefined();
+    if (!englishResult || 'error' in englishResult) {
+      throw new Error('English translation unexpectedly failed');
+    }
+    expect(englishResult.translatedTitle).toBe('English: Recovery Test');
+
+    const japaneseResult = results['ja-JP'];
+    expect(japaneseResult).toBeDefined();
+    if (!japaneseResult || !('error' in japaneseResult)) {
+      throw new Error('Japanese translation should have failed in this test');
+    }
+    expect(japaneseResult.error).toContain('Japanese translation service');
 
     const reviewedSource = await ContentManager.readSource(contentId);
     expect(reviewedSource.status).toBe('reviewed');

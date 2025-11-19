@@ -1,6 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { spawn } from 'child_process';
+import { ContentManager } from '../ContentManager';
+import { M3U8AudioService } from './M3U8AudioService';
+import { isSupportedLanguage } from '@/config/languages';
+import type { Language } from '@/types/content';
 
 interface M3U8Data {
   playlistPath: string;
@@ -23,6 +27,12 @@ interface UploadResult {
 
 interface FileUploadResult {
   success: boolean;
+  error?: string;
+}
+
+interface SingleFileUploadResult {
+  success: boolean;
+  url?: string;
   error?: string;
 }
 
@@ -85,10 +95,14 @@ export class CloudflareR2Service {
         );
         if (m3u8Result.success) {
           uploadResults.urls.m3u8 = `${this.BASE_URL}/${r2BasePath}/playlist.m3u8`;
-          uploadResults.urls.segments = m3u8Result.segmentUrls;
+          if (m3u8Result.segmentUrls) {
+            uploadResults.urls.segments = m3u8Result.segmentUrls;
+          }
           console.log(`✅ M3U8 files uploaded successfully`);
           console.log(`   Playlist URL: ${uploadResults.urls.m3u8}`);
-          console.log(`   Segments uploaded: ${m3u8Result.segmentUrls.length}`);
+          console.log(
+            `   Segments uploaded: ${m3u8Result.segmentUrls?.length ?? 0}`
+          );
         } else {
           console.error(`❌ M3U8 upload failed: ${m3u8Result.error}`);
           uploadResults.errors.push(`M3U8 upload failed: ${m3u8Result.error}`);
@@ -118,6 +132,96 @@ export class CloudflareR2Service {
         errors: [errorMessage],
       };
     }
+  }
+
+  static async uploadWAVAudio(
+    id: string,
+    language: Language
+  ): Promise<SingleFileUploadResult> {
+    if (!isSupportedLanguage(language)) {
+      throw new Error(`Unsupported language: ${language}`);
+    }
+
+    const rcloneReady = await this.checkRcloneAvailability();
+    if (!rcloneReady) {
+      throw new Error('rclone not available or not configured');
+    }
+
+    const content = await ContentManager.read(id, language);
+    if (!content.audio_file) {
+      throw new Error(
+        `No WAV audio found for ${id} (${language}). Generate audio first.`
+      );
+    }
+
+    const wavFileName = path.basename(content.audio_file);
+    const remotePath = `audio/${language}/${content.category}/${id}/${wavFileName}`;
+    const uploadResult = await this.uploadFile(content.audio_file, remotePath);
+
+    if (!uploadResult.success) {
+      return { success: false, error: uploadResult.error };
+    }
+
+    const url = `${this.BASE_URL}/${remotePath}`;
+    await ContentManager.addAudio(id, language, content.audio_file, {
+      cloudflare: url,
+    });
+
+    return {
+      success: true,
+      url,
+    };
+  }
+
+  static async uploadM3U8Audio(
+    id: string,
+    language: Language
+  ): Promise<UploadResult> {
+    if (!isSupportedLanguage(language)) {
+      throw new Error(`Unsupported language: ${language}`);
+    }
+
+    const rcloneReady = await this.checkRcloneAvailability();
+    if (!rcloneReady) {
+      throw new Error('rclone not available or not configured');
+    }
+
+    const content = await ContentManager.read(id, language);
+    if (!content.audio_file) {
+      throw new Error(
+        `No WAV audio found for ${id} (${language}). Generate audio first.`
+      );
+    }
+
+    const m3u8Info = await M3U8AudioService.getM3U8Files(
+      id,
+      language,
+      content.category
+    );
+
+    if (!m3u8Info) {
+      throw new Error(
+        `No M3U8 assets found for ${id} (${language}). Run conversion first.`
+      );
+    }
+
+    const uploadResult = await this.uploadAudioFiles(
+      id,
+      language,
+      content.category,
+      { m3u8Data: m3u8Info }
+    );
+
+    if (uploadResult.success) {
+      await ContentManager.addAudio(
+        id,
+        language,
+        content.audio_file,
+        uploadResult.urls
+      );
+    }
+
+    return uploadResult;
   }
 
   /**

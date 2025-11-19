@@ -1,5 +1,5 @@
 import { ContentManager } from '../ContentManager';
-import { ContentSchema } from '../ContentSchema';
+import { ContentSchema, type PipelineConfigEntry } from '../ContentSchema';
 import { TranslationService } from './TranslationService';
 import { AudioService } from './AudioService';
 import { SocialService } from './SocialService';
@@ -10,26 +10,28 @@ import {
   getM3U8Config,
   shouldGenerateM3U8,
   shouldUploadToR2,
+  isSupportedLanguage,
 } from '@/config/languages';
 import fs from 'fs/promises';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import type { Language, Status } from '@/types/content';
 
 const execAsync = promisify(exec);
 
-interface PipelineStep {
-  status: string;
-  phase: string;
-  nextStatus: string | null;
+interface PipelineExecutionStep {
+  from: Status;
+  to: Status | null;
   description: string;
+  success: boolean;
 }
 
 interface PendingContent {
   content: any;
   nextPhase: string;
-  currentStatus: string;
-  nextStatus: string | null;
+  currentStatus: Status;
+  nextStatus: Status | null;
   description: string;
 }
 
@@ -45,7 +47,7 @@ export class ContentPipelineService {
   /**
    * Get content that needs processing for a specific status
    */
-  static async getPendingContent(status: string): Promise<any[]> {
+  static async getPendingContent(status: Status): Promise<any[]> {
     try {
       const step = ContentSchema.getPipelineStep(status);
       if (!step) {
@@ -140,7 +142,7 @@ export class ContentPipelineService {
    */
   static async executeProcessingStep(
     id: string,
-    step: PipelineStep
+    step: PipelineConfigEntry
   ): Promise<boolean> {
     try {
       switch (step.status) {
@@ -179,6 +181,69 @@ export class ContentPipelineService {
     }
   }
 
+  static async processContent(
+    id: string,
+    startFrom?: Status
+  ): Promise<{ steps: PipelineExecutionStep[]; finalStatus: Status }> {
+    const sourceContent = await ContentManager.readSource(id);
+    let currentStatus = sourceContent.status as Status;
+
+    if (startFrom) {
+      const startStep = ContentSchema.getPipelineStep(startFrom);
+      if (!startStep) {
+        throw new Error(`Invalid pipeline step: ${startFrom}`);
+      }
+      if (currentStatus !== startFrom) {
+        throw new Error(
+          `Content ${id} is currently ${currentStatus} and cannot start from ${startFrom}`
+        );
+      }
+    }
+
+    const executedSteps: PipelineExecutionStep[] = [];
+    const MAX_STEPS = 10;
+    let safetyCounter = 0;
+
+    while (safetyCounter < MAX_STEPS) {
+      const freshContent = await ContentManager.readSource(id);
+      currentStatus = freshContent.status as Status;
+      const step = ContentSchema.getPipelineStep(currentStatus);
+
+      if (!step || !step.nextStatus) {
+        break;
+      }
+
+      const success = await this.processContentNextStep(id);
+      executedSteps.push({
+        from: currentStatus,
+        to: step.nextStatus,
+        description: step.description,
+        success,
+      });
+
+      if (!success) {
+        break;
+      }
+
+      const updatedContent = await ContentManager.readSource(id);
+      const newStatus = updatedContent.status as Status;
+      if (newStatus === currentStatus) {
+        console.warn(
+          `⚠️ Status did not advance after processing ${currentStatus} for ${id}`
+        );
+        break;
+      }
+
+      currentStatus = newStatus;
+      safetyCounter += 1;
+    }
+
+    return {
+      steps: executedSteps,
+      finalStatus: currentStatus,
+    };
+  }
+
   /**
    * Generate M3U8 files for content (extracted from cli.js)
    */
@@ -191,9 +256,11 @@ export class ContentPipelineService {
 
       // Language configuration
       const audioLanguages = getAudioLanguages();
-      const targetLanguages = availableLanguages.filter(
-        (lang) => audioLanguages.includes(lang) && shouldGenerateM3U8(lang)
-      );
+      const targetLanguages = availableLanguages
+        .filter((lang): lang is Language => isSupportedLanguage(lang))
+        .filter(
+          (lang) => audioLanguages.includes(lang) && shouldGenerateM3U8(lang)
+        );
 
       if (targetLanguages.length === 0) {
         console.log(`⚠️ No languages configured for M3U8 conversion`);
@@ -268,9 +335,11 @@ export class ContentPipelineService {
       const availableLanguages = await ContentManager.getAvailableLanguages(id);
 
       const audioLanguages = getAudioLanguages();
-      const targetLanguages = availableLanguages.filter(
-        (lang) => audioLanguages.includes(lang) && shouldUploadToR2(lang)
-      );
+      const targetLanguages = availableLanguages
+        .filter((lang): lang is Language => isSupportedLanguage(lang))
+        .filter(
+          (lang) => audioLanguages.includes(lang) && shouldUploadToR2(lang)
+        );
 
       if (targetLanguages.length === 0) {
         console.log(`⚠️ No languages configured for R2 upload`);
@@ -286,6 +355,9 @@ export class ContentPipelineService {
       for (const language of targetLanguages) {
         try {
           const content = await ContentManager.read(id, language);
+          if (!content.audio_file) {
+            throw new Error(`No audio path recorded for ${language}`);
+          }
 
           // Get M3U8 files for this content
           const m3u8Info = await M3U8AudioService.getM3U8Files(

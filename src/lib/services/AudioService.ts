@@ -6,7 +6,9 @@ import {
   getAudioLanguages,
   getTTSConfig,
   shouldGenerateAudio,
+  isSupportedLanguage,
 } from '@/config/languages';
+import type { Language } from '@/types/content';
 
 interface AudioServiceResult {
   success: boolean;
@@ -20,7 +22,7 @@ export class AudioService {
   // Generate WAV audio files only (no M3U8 or R2 upload)
   static async generateWavOnly(
     id: string
-  ): Promise<Record<string, AudioServiceResult>> {
+  ): Promise<Partial<Record<Language, AudioServiceResult>>> {
     // Check source status first
     const sourceContent = await ContentManager.readSource(id);
 
@@ -37,9 +39,9 @@ export class AudioService {
     const audioLanguages = getAudioLanguages();
 
     // Find intersection of available languages and configured audio languages
-    const targetLanguages = availableLanguages.filter((lang) =>
-      audioLanguages.includes(lang)
-    );
+    const targetLanguages = availableLanguages
+      .filter((lang): lang is Language => isSupportedLanguage(lang))
+      .filter((lang) => audioLanguages.includes(lang));
 
     if (targetLanguages.length === 0) {
       throw new Error(
@@ -51,59 +53,13 @@ export class AudioService {
       `📝 Generating WAV audio for ${targetLanguages.length} languages: ${targetLanguages.join(', ')}`
     );
 
-    const results: Record<string, AudioServiceResult> = {};
+    const results: Partial<Record<Language, AudioServiceResult>> = {};
 
     for (const language of targetLanguages) {
       try {
         console.log(`🎙️ Generating WAV audio: ${id} (${language})`);
 
-        // Check if this language should have audio generated
-        if (!shouldGenerateAudio(language)) {
-          throw new Error(
-            `Audio generation not configured for language: ${language}`
-          );
-        }
-
-        // Get specific language content
-        const content = await ContentManager.read(id, language);
-
-        if (!content) {
-          throw new Error(`No ${language} content found for ${id}`);
-        }
-
-        // Get TTS configuration for this language
-        const ttsConfig = getTTSConfig(language);
-        const voiceConfig = {
-          languageCode: ttsConfig.languageCode,
-          name: ttsConfig.name,
-        };
-
-        const { content: text } = content;
-
-        // Prepare content for TTS
-        const ttsContent = GoogleTTSService.prepareContentForTTS(
-          text,
-          language
-        );
-
-        // Generate audio
-        const ttsService = new GoogleTTSService();
-        const audioResponse = await ttsService.synthesizeSpeech(
-          ttsContent,
-          voiceConfig
-        );
-
-        // Save audio file with category-based structure
-        const audioPath = await this.saveAudioFile(
-          audioResponse.audioContent,
-          id,
-          language,
-          content.category
-        );
-
-        // Update content with audio path (no URLs yet)
-        await ContentManager.addAudio(id, language, audioPath, {});
-
+        const audioPath = await this.generateAudio(id, language);
         results[language] = { success: true, audioPath };
         console.log(`✅ WAV audio generated: ${audioPath}`);
       } catch (error) {
@@ -136,5 +92,55 @@ export class AudioService {
     await fs.writeFile(filePath, audioContent);
 
     return filePath;
+  }
+
+  static async generateAudio(id: string, language: Language): Promise<string> {
+    const sourceContent = await ContentManager.readSource(id);
+    if (
+      sourceContent.status === 'draft' ||
+      sourceContent.status === 'reviewed'
+    ) {
+      throw new Error(
+        `Content must be translated before audio generation. Current status: ${sourceContent.status}`
+      );
+    }
+
+    if (!shouldGenerateAudio(language)) {
+      throw new Error(
+        `Audio generation not configured for language: ${language}`
+      );
+    }
+
+    const content = await ContentManager.read(id, language);
+    if (!content) {
+      throw new Error(`No ${language} content found for ${id}`);
+    }
+
+    const ttsConfig = getTTSConfig(language);
+    const voiceConfig = {
+      languageCode: ttsConfig.languageCode,
+      name: ttsConfig.name,
+    };
+
+    const ttsContent = GoogleTTSService.prepareContentForTTS(
+      content.content,
+      language
+    );
+
+    const ttsService = new GoogleTTSService();
+    const audioResponse = await ttsService.synthesizeSpeech(
+      ttsContent,
+      voiceConfig
+    );
+
+    const audioPath = await this.saveAudioFile(
+      audioResponse.audioContent,
+      id,
+      language,
+      content.category
+    );
+
+    await ContentManager.addAudio(id, language, audioPath, {});
+    return audioPath;
   }
 }

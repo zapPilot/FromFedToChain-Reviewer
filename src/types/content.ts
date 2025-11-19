@@ -35,8 +35,9 @@ export interface ContentFeedback {
 }
 
 export interface StreamingUrls {
-  m3u8: string;
-  cloudflare: string;
+  m3u8?: string;
+  cloudflare?: string;
+  segments?: string[];
 }
 
 export interface ContentItem {

@@ -66,16 +66,14 @@ export function WorkflowLogViewer({
               <p className="text-sm text-muted-foreground">
                 Logs are available as a downloadable archive from GitHub.
               </p>
-              <Button asChild variant="outline">
-                <a
-                  href={logUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2"
-                >
-                  <span>📥</span>
-                  Download Logs
-                </a>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  window.open(logUrl, '_blank', 'noopener,noreferrer')
+                }
+              >
+                <span className="mr-2">📥</span>
+                Download Logs
               </Button>
             </div>
           ) : (

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CloudflareR2Service } from '@/lib/services/CloudflareR2Service';
+import { isSupportedLanguage } from '@/config/languages';
+import type { Language } from '@/types/content';
 
 /**
  * POST /api/pipeline/upload
@@ -25,27 +27,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!isSupportedLanguage(language)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Unsupported language: ${language}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const targetLanguage = language as Language;
+
     const results: {
-      wav?: any;
-      m3u8?: any;
+      wav?: Awaited<ReturnType<typeof CloudflareR2Service.uploadWAVAudio>>;
+      m3u8?: Awaited<ReturnType<typeof CloudflareR2Service.uploadM3U8Audio>>;
     } = {};
 
     // Upload WAV
     if (format === 'wav' || format === 'both') {
-      console.log(`☁️ Uploading WAV to R2: ${contentId} (${language})...`);
+      console.log(
+        `☁️ Uploading WAV to R2: ${contentId} (${targetLanguage})...`
+      );
       const wavResult = await CloudflareR2Service.uploadWAVAudio(
         contentId,
-        language
+        targetLanguage
       );
       results.wav = wavResult;
     }
 
     // Upload M3U8
     if (format === 'm3u8' || format === 'both') {
-      console.log(`☁️ Uploading M3U8 to R2: ${contentId} (${language})...`);
+      console.log(
+        `☁️ Uploading M3U8 to R2: ${contentId} (${targetLanguage})...`
+      );
       const m3u8Result = await CloudflareR2Service.uploadM3U8Audio(
         contentId,
-        language
+        targetLanguage
       );
       results.m3u8 = m3u8Result;
     }

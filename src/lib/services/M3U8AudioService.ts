@@ -2,6 +2,13 @@ import fs from 'fs/promises';
 import path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
 import { spawn } from 'child_process';
+import { ContentManager } from '../ContentManager';
+import {
+  getM3U8Config,
+  isSupportedLanguage,
+  shouldGenerateM3U8,
+} from '@/config/languages';
+import type { Language } from '@/types/content';
 
 interface ConversionOptions {
   segmentDuration?: number;
@@ -32,7 +39,7 @@ interface M3U8Metadata {
   };
 }
 
-interface M3U8ConversionResult {
+export interface M3U8ConversionResult {
   success: boolean;
   playlistPath: string;
   segmentDir: string;
@@ -318,6 +325,35 @@ export class M3U8AudioService {
         convertedAt: new Date().toISOString(),
       },
     };
+  }
+
+  static async generateM3U8Audio(
+    id: string,
+    language: Language
+  ): Promise<M3U8ConversionResult> {
+    if (!isSupportedLanguage(language)) {
+      throw new Error(`Unsupported language: ${language}`);
+    }
+
+    if (!shouldGenerateM3U8(language)) {
+      throw new Error(`M3U8 conversion disabled for ${language}`);
+    }
+
+    const content = await ContentManager.read(id, language);
+    if (!content.audio_file) {
+      throw new Error(
+        `No WAV audio found for ${id} (${language}). Run audio generation first.`
+      );
+    }
+
+    const m3u8Config = getM3U8Config(language);
+    return this.convertToM3U8(
+      content.audio_file,
+      id,
+      language,
+      content.category,
+      m3u8Config
+    );
   }
 
   /**

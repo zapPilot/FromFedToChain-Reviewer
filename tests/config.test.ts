@@ -7,6 +7,7 @@ import {
   getAudioLanguages,
   getTranslationTargets,
 } from '@/config/languages';
+import type { Language } from '@/types/content';
 
 describe('Configuration', () => {
   it('provides valid language definitions', () => {
@@ -17,7 +18,8 @@ describe('Configuration', () => {
     const audioLanguages = getAudioLanguages();
     const translationTargets = getTranslationTargets();
 
-    LANGUAGES.SUPPORTED.forEach((lang) => {
+    const supportedLanguages: Language[] = LANGUAGES.SUPPORTED;
+    supportedLanguages.forEach((lang) => {
       expect(LANGUAGE_CONFIG[lang]).toBeTruthy();
       expect(VOICE_CONFIG[lang]).toBeTruthy();
       expect(LANGUAGE_CONFIG[lang].tts.voiceName).toBeTruthy();
@@ -43,7 +45,8 @@ describe('Configuration', () => {
   });
 
   it('supports social languages', () => {
-    ['en-US', 'ja-JP'].forEach((lang) => {
+    const socialLanguages: Language[] = ['en-US', 'ja-JP'];
+    socialLanguages.forEach((lang) => {
       expect(LANGUAGES.SUPPORTED).toContain(
         lang as (typeof LANGUAGES.SUPPORTED)[number]
       );

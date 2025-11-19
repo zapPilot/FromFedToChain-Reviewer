@@ -6,6 +6,7 @@ import {
   Category,
   Status,
   Language,
+  StreamingUrls,
 } from '@/types/content';
 import { ContentSchema } from './ContentSchema';
 
@@ -348,13 +349,13 @@ export class ContentManager {
 
   static async addAudio(
     id: string,
-    language: string,
+    language: Language,
     audioPath: string,
-    streamingUrls: Record<string, unknown> = {}
+    streamingUrls: Partial<StreamingUrls> = {}
   ) {
     const updates: Partial<ContentItem> = { audio_file: audioPath };
     if (Object.keys(streamingUrls).length) {
-      updates.streaming_urls = streamingUrls as ContentItem['streaming_urls'];
+      updates.streaming_urls = streamingUrls;
     }
     return this.update(id, updates, language);
   }

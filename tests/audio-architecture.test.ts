@@ -7,6 +7,7 @@ import {
   getTTSConfig,
   shouldGenerateAudio,
 } from '@/config/languages';
+import type { Language } from '@/types/content';
 import { ContentManager } from '@/lib/ContentManager';
 import { AudioService } from '@/lib/services/AudioService';
 import { GoogleTTSService } from '@/lib/services/GoogleTTSService';
@@ -67,7 +68,8 @@ describe('Audio Architecture', () => {
     });
 
     it('provides TTS config for each language', () => {
-      ['zh-TW', 'en-US', 'ja-JP'].forEach((lang) => {
+      const languages: Language[] = ['zh-TW', 'en-US', 'ja-JP'];
+      languages.forEach((lang) => {
         const config = getTTSConfig(lang);
         expect(config.languageCode).toBe(
           LANGUAGE_CONFIG[lang].tts.languageCode
@@ -94,12 +96,13 @@ describe('Audio Architecture', () => {
 
       const result = await AudioService.generateWavOnly(CONTENT_ID);
 
-      expect(Object.keys(result)).toEqual(
+      const processedLanguages = Object.keys(result) as Language[];
+      expect(processedLanguages).toEqual(
         expect.arrayContaining(['zh-TW', 'en-US', 'ja-JP'])
       );
 
-      for (const language of Object.keys(result)) {
-        const info = result[language];
+      for (const language of processedLanguages) {
+        const info = result[language]!;
         expect(info.success).toBe(true);
         expect(info.audioPath).toContain(path.join(language));
         await expect(fs.access(info.audioPath!)).resolves.toBeUndefined();

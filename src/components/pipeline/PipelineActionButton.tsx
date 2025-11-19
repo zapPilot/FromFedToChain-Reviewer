@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { githubClient, WORKFLOWS } from '@/lib/github-client';
-import { Button } from '@/components/ui/button';
+import { Button, type ButtonProps } from '@/components/ui/button';
 // TODO: Install sonner for toast notifications
 // import { toast } from 'sonner';
 
 interface PipelineActionButtonProps {
   contentId: string;
-  variant?: 'default' | 'outline' | 'secondary';
+  variant?: ButtonProps['variant'];
   className?: string;
   onSuccess?: () => void;
 }
