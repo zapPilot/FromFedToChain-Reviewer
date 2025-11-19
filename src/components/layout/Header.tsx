@@ -24,6 +24,12 @@ export function Header() {
             >
               History
             </Link>
+            <Link
+              href="/pipeline"
+              className="text-sm font-medium text-gray-800 hover:text-blue-600 transition-colors"
+            >
+              Pipeline
+            </Link>
           </nav>
         </div>
       </div>

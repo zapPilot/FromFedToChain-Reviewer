@@ -1,6 +1,6 @@
 {
   "id": "2025-10-20-kohaku-ethereum-privacy-wallet-revolution",
-  "status": "draft",
+  "status": "wav",
   "category": "ethereum",
   "date": "2025-10-20",
   "language": "zh-TW",
@@ -33,7 +33,13 @@
   "audio_file": null,
   "social_hook": null,
   "feedback": {
-    "content_review": null
+    "content_review": {
+      "status": "accepted",
+      "score": 4,
+      "reviewer": "reviewer_web",
+      "timestamp": "2025-11-19T12:30:01.333Z",
+      "comments": "Approved for translation"
+    }
   },
-  "updated_at": "2025-10-20T10:00:00.000Z"
+  "updated_at": "2025-11-19T13:01:49.820Z"
 }
