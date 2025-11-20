@@ -3,8 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
 
   // Static export for GitHub Pages deployment
-  // Only enable when explicitly requested to keep API routes working in dev
-  output: process.env.NEXT_OUTPUT_EXPORT === 'true' ? 'export' : undefined,
+  output: 'export',
 
   // GitHub Pages serves from /repo-name/ subdirectory
   // Update this if your repo name is different
