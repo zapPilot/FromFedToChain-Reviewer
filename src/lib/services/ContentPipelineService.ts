@@ -17,6 +17,7 @@ import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import type { Language, Status } from '@/types/content';
+import { getErrorMessage, logError } from '../utils/error-handler';
 
 const execAsync = promisify(exec);
 
@@ -59,10 +60,9 @@ export class ContentPipelineService {
       const content = await ContentManager.getByStatus(status);
       return content;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(
-        `❌ Error getting pending content for ${status}: ${errorMessage}`
+      const errorMessage = logError(
+        `Error getting pending content for ${status}`,
+        error
       );
       return [];
     }
@@ -130,9 +130,7 @@ export class ContentPipelineService {
         return false;
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`❌ Error processing ${id}: ${errorMessage}`);
+      const errorMessage = logError(`Error processing ${id}`, error);
       return false;
     }
   }
@@ -174,9 +172,7 @@ export class ContentPipelineService {
           return false;
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`❌ Processing step failed: ${errorMessage}`);
+      const errorMessage = logError('Processing step failed', error);
       return false;
     }
   }
@@ -293,10 +289,9 @@ export class ContentPipelineService {
 
           console.log(`✅ M3U8 converted for ${language}`);
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          console.error(
-            `❌ M3U8 conversion failed for ${language}: ${errorMessage}`
+          const errorMessage = logError(
+            `M3U8 conversion failed for ${language}`,
+            error
           );
           allSuccessful = false;
         }
@@ -308,9 +303,7 @@ export class ContentPipelineService {
 
       return allSuccessful;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`❌ M3U8 step failed: ${errorMessage}`);
+      const errorMessage = logError('M3U8 step failed', error);
       return false;
     }
   }
@@ -397,9 +390,10 @@ export class ContentPipelineService {
             throw new Error(uploadResult.errors.join(', '));
           }
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          console.error(`❌ R2 upload failed for ${language}: ${errorMessage}`);
+          const errorMessage = logError(
+            `R2 upload failed for ${language}`,
+            error
+          );
           allSuccessful = false;
         }
       }
@@ -411,9 +405,7 @@ export class ContentPipelineService {
 
       return allSuccessful;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`❌ Cloudflare upload step failed: ${errorMessage}`);
+      const errorMessage = logError('Cloudflare upload step failed', error);
       return false;
     }
   }
@@ -446,9 +438,7 @@ export class ContentPipelineService {
 
       return true;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`❌ Content upload failed: ${errorMessage}`);
+      const errorMessage = logError('Content upload failed', error);
       return false;
     }
   }
@@ -518,10 +508,9 @@ export class ContentPipelineService {
         `✅ Uploaded: ${language}/${category}/${contentFile.id}.json`
       );
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(
-        `❌ Upload failed: ${language}/${category}/${contentFile.id}.json - ${errorMessage}`
+      const errorMessage = logError(
+        `Upload failed: ${language}/${category}/${contentFile.id}.json`,
+        error
       );
       throw error;
     }

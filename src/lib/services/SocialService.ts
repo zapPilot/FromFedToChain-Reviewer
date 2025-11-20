@@ -7,6 +7,7 @@ import {
   getTranslationTargets,
   shouldGenerateSocialHooks,
 } from '@/config/languages';
+import { getErrorMessage, logError } from '../utils/error-handler';
 
 // Command executor type
 type CommandExecutor = (command: string, options?: any) => Buffer | string;
@@ -206,10 +207,9 @@ export class SocialService {
               console.log(`✅ Social hook generated for ${targetLang}: ${id}`);
             }
           } catch (error) {
-            const errorMessage =
-              error instanceof Error ? error.message : String(error);
-            console.error(
-              `❌ Social hook processing failed for ${targetLang}: ${errorMessage}`
+            const errorMessage = logError(
+              `Social hook processing failed for ${targetLang}`,
+              error
             );
             results[targetLang] = {
               success: false,
@@ -237,10 +237,9 @@ export class SocialService {
 
       return results;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(
-        `❌ Social hook generation pipeline failed for ${id}: ${errorMessage}`
+      const errorMessage = logError(
+        `Social hook generation pipeline failed for ${id}`,
+        error
       );
       throw error;
     }
@@ -318,10 +317,9 @@ export class SocialService {
           method: 'generated',
         };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        console.error(
-          `❌ Social hook generation failed for ${language}: ${errorMessage}`
+        const errorMessage = logError(
+          `Social hook generation failed for ${language}`,
+          error
         );
         results[language] = {
           success: false,
@@ -403,8 +401,7 @@ Return only the hook text, no explanations.`;
           throw new Error('Claude command timed out after 60 seconds');
         }
       }
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       throw new Error(`Social hook generation failed: ${errorMessage}`);
     }
   }

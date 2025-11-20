@@ -9,6 +9,7 @@ import type {
   CreateConceptData,
   ConceptSummary,
 } from '@/types/knowledge';
+import { getErrorMessage } from './utils/error-handler';
 
 /**
  * KnowledgeManager - Manages knowledge concept indexing
@@ -54,7 +55,7 @@ export class KnowledgeManager {
       console.log('✅ Knowledge index initialized');
     } catch (error) {
       throw new Error(
-        `Failed to initialize knowledge index: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to initialize knowledge index: ${getErrorMessage(error)}`
       );
     }
   }
@@ -96,7 +97,7 @@ export class KnowledgeManager {
       return JSON.parse(indexContent) as KnowledgeIndex;
     } catch (error) {
       throw new Error(
-        `Failed to read knowledge index: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to read knowledge index: ${getErrorMessage(error)}`
       );
     }
   }
@@ -108,7 +109,7 @@ export class KnowledgeManager {
       await fs.writeFile(this.INDEX_FILE, JSON.stringify(indexData, null, 2));
     } catch (error) {
       throw new Error(
-        `Failed to update knowledge index: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to update knowledge index: ${getErrorMessage(error)}`
       );
     }
   }
@@ -249,9 +250,7 @@ export class KnowledgeManager {
 
       return results;
     } catch (error) {
-      throw new Error(
-        `Search failed: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Search failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -323,9 +322,7 @@ export class KnowledgeManager {
 
       return concepts.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
-      throw new Error(
-        `Failed to list concepts: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Failed to list concepts: ${getErrorMessage(error)}`);
     }
   }
 
@@ -335,9 +332,7 @@ export class KnowledgeManager {
       const index = await this.readIndex();
       return index.categories;
     } catch (error) {
-      throw new Error(
-        `Failed to get categories: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Failed to get categories: ${getErrorMessage(error)}`);
     }
   }
 
@@ -417,9 +412,7 @@ export class KnowledgeManager {
         last_updated: index.last_updated,
       };
     } catch (error) {
-      throw new Error(
-        `Failed to get stats: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Failed to get stats: ${getErrorMessage(error)}`);
     }
   }
 }

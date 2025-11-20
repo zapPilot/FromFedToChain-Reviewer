@@ -6,6 +6,7 @@ import {
   getTranslationTargets,
 } from '@/config/languages';
 import type { Language } from '@/types/content';
+import { getErrorMessage, logError } from '../utils/error-handler';
 
 interface TranslationResult {
   translatedTitle: string;
@@ -96,12 +97,11 @@ export class TranslationService {
         const result = await this.translate(id, language);
         results[language] = result;
       } catch (error) {
-        console.error(
-          `❌ Translation failed for ${language}: ${error instanceof Error ? error.message : String(error)}`
+        const errorMessage = logError(
+          `❌ Translation failed for ${language}`,
+          error
         );
-        results[language] = {
-          error: error instanceof Error ? error.message : String(error),
-        };
+        results[language] = { error: errorMessage };
       }
     }
 
@@ -145,9 +145,7 @@ export class TranslationService {
           'Google Cloud authentication failed. Please check your service-account.json credentials.'
         );
       } else {
-        throw new Error(
-          `Translation failed: ${error instanceof Error ? error.message : String(error)}`
-        );
+        throw new Error(`Translation failed: ${getErrorMessage(error)}`);
       }
     }
   }
@@ -177,8 +175,9 @@ export class TranslationService {
       console.log(`✅ Social hook translated to ${targetLanguage}`);
       return translatedHook;
     } catch (error) {
-      console.error(
-        `❌ Social hook translation failed for ${targetLanguage}: ${error instanceof Error ? error.message : String(error)}`
+      logError(
+        `❌ Social hook translation failed for ${targetLanguage}`,
+        error
       );
       throw error;
     }

@@ -1,14 +1,13 @@
 import fs from 'fs/promises';
 import path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
-import { spawn } from 'child_process';
 import { ContentManager } from '../ContentManager';
-import {
-  getM3U8Config,
-  isSupportedLanguage,
-  shouldGenerateM3U8,
-} from '@/config/languages';
+import { getM3U8Config, shouldGenerateM3U8 } from '@/config/languages';
+import { validateLanguage } from '../middleware/validate-language';
 import type { Language } from '@/types/content';
+import type { CommandResult } from '@/types/service-results';
+import { getErrorMessage, logError } from '../utils/error-handler';
+import { executeCommand } from '../utils/command-executor';
 
 interface ConversionOptions {
   segmentDuration?: number;
@@ -47,13 +46,6 @@ export interface M3U8ConversionResult {
   metadata: M3U8Metadata;
 }
 
-interface CommandResult {
-  success: boolean;
-  output?: string;
-  error?: string;
-  code?: number;
-}
-
 interface M3U8FileInfo {
   playlistPath: string;
   segmentDir: string;
@@ -79,7 +71,7 @@ export class M3U8AudioService {
   static async detectFFmpegPath(): Promise<string | null> {
     for (const ffmpegPath of this.FFMPEG_PATHS) {
       try {
-        const result = await this.executeCommand(ffmpegPath, ['-version']);
+        const result = await executeCommand(ffmpegPath, ['-version']);
         if (result.success) {
           console.log(`✅ FFmpeg found at: ${ffmpegPath}`);
           return ffmpegPath;
@@ -95,45 +87,6 @@ export class M3U8AudioService {
     console.error('   Ubuntu: sudo apt install ffmpeg');
     console.error('   Windows: choco install ffmpeg');
     return null;
-  }
-
-  /**
-   * Execute a command and return result
-   */
-  static async executeCommand(
-    command: string,
-    args: string[]
-  ): Promise<CommandResult> {
-    return new Promise((resolve) => {
-      const process = spawn(command, args);
-      let stdout = '';
-      let stderr = '';
-
-      process.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
-
-      process.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
-
-      process.on('close', (code) => {
-        resolve({
-          success: code === 0,
-          output: stdout,
-          error: stderr,
-          code: code || undefined,
-        });
-      });
-
-      process.on('error', (error) => {
-        resolve({
-          success: false,
-          error: error.message,
-          code: -1,
-        });
-      });
-    });
   }
 
   /**
@@ -211,9 +164,7 @@ export class M3U8AudioService {
         metadata,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`❌ M3U8 conversion failed: ${errorMessage}`);
+      const errorMessage = logError('❌ M3U8 conversion failed', error);
       throw new Error(
         `M3U8 conversion failed for ${id} (${language}): ${errorMessage}`
       );
@@ -331,9 +282,7 @@ export class M3U8AudioService {
     id: string,
     language: Language
   ): Promise<M3U8ConversionResult> {
-    if (!isSupportedLanguage(language)) {
-      throw new Error(`Unsupported language: ${language}`);
-    }
+    validateLanguage(language);
 
     if (!shouldGenerateM3U8(language)) {
       throw new Error(`M3U8 conversion disabled for ${language}`);
@@ -447,8 +396,7 @@ export class M3U8AudioService {
                   }
                 } catch (error) {
                   // Skip individual content directories that have issues
-                  const errorMessage =
-                    error instanceof Error ? error.message : String(error);
+                  const errorMessage = getErrorMessage(error);
                   console.log(
                     `⚠️ Skipping ${language}/${category}/${id}: ${errorMessage}`
                   );
@@ -456,8 +404,7 @@ export class M3U8AudioService {
               }
             } catch (error) {
               // Skip individual category directories that have issues
-              const errorMessage =
-                error instanceof Error ? error.message : String(error);
+              const errorMessage = getErrorMessage(error);
               console.log(
                 `⚠️ Skipping ${language}/${category}: ${errorMessage}`
               );
@@ -465,8 +412,7 @@ export class M3U8AudioService {
           }
         } catch (error) {
           // Skip individual language directories that have issues
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
+          const errorMessage = getErrorMessage(error);
           console.log(`⚠️ Skipping ${language}: ${errorMessage}`);
         }
       }
@@ -475,9 +421,7 @@ export class M3U8AudioService {
         (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
       );
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`Error listing M3U8 files: ${errorMessage}`);
+      const errorMessage = logError('Error listing M3U8 files', error);
       return [];
     }
   }
@@ -497,9 +441,7 @@ export class M3U8AudioService {
       console.log(`🗑️ Cleaned up M3U8 files: ${id} (${language})`);
       return true;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`Failed to cleanup M3U8 files: ${errorMessage}`);
+      logError('Failed to cleanup M3U8 files', error);
       return false;
     }
   }

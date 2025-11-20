@@ -5,6 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Query } from '@tanstack/query-core';
 import { githubClient, WorkflowName, WorkflowRun } from '@/lib/github-client';
+import { queryKeys } from '@/lib/query-keys';
 
 export interface UseWorkflowStatusOptions {
   workflowFile: WorkflowName;
@@ -13,7 +14,7 @@ export interface UseWorkflowStatusOptions {
   pollingInterval?: number; // in milliseconds
 }
 
-type WorkflowStatusQueryKey = ['workflow-status', WorkflowName, string];
+type WorkflowStatusQueryKey = readonly ['workflow-status', string, string];
 
 interface WorkflowStatusResult {
   run: WorkflowRun | null;
@@ -36,11 +37,7 @@ export function useWorkflowStatus({
   enabled = true,
   pollingInterval = 10000, // 10 seconds default
 }: UseWorkflowStatusOptions) {
-  const queryKey: WorkflowStatusQueryKey = [
-    'workflow-status',
-    workflowFile,
-    contentId,
-  ];
+  const queryKey = queryKeys.workflowStatus(workflowFile, contentId);
 
   const query = useQuery<
     WorkflowStatusResult,

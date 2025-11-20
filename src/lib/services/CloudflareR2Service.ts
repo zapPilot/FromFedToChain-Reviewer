@@ -1,10 +1,12 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { spawn } from 'child_process';
 import { ContentManager } from '../ContentManager';
 import { M3U8AudioService } from './M3U8AudioService';
-import { isSupportedLanguage } from '@/config/languages';
+import { validateLanguage } from '../middleware/validate-language';
 import type { Language } from '@/types/content';
+import type { CommandResult } from '@/types/service-results';
+import { getErrorMessage, logError } from '../utils/error-handler';
+import { executeCommand } from '../utils/command-executor';
 
 interface M3U8Data {
   playlistPath: string;
@@ -33,12 +35,6 @@ interface FileUploadResult {
 interface SingleFileUploadResult {
   success: boolean;
   url?: string;
-  error?: string;
-}
-
-interface CommandResult {
-  success: boolean;
-  output?: string;
   error?: string;
 }
 
@@ -123,9 +119,7 @@ export class CloudflareR2Service {
 
       return uploadResults;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`❌ R2 upload failed: ${errorMessage}`);
+      const errorMessage = logError('❌ R2 upload failed', error);
       return {
         success: false,
         urls: {},
@@ -138,9 +132,7 @@ export class CloudflareR2Service {
     id: string,
     language: Language
   ): Promise<SingleFileUploadResult> {
-    if (!isSupportedLanguage(language)) {
-      throw new Error(`Unsupported language: ${language}`);
-    }
+    validateLanguage(language);
 
     const rcloneReady = await this.checkRcloneAvailability();
     if (!rcloneReady) {
@@ -177,9 +169,7 @@ export class CloudflareR2Service {
     id: string,
     language: Language
   ): Promise<UploadResult> {
-    if (!isSupportedLanguage(language)) {
-      throw new Error(`Unsupported language: ${language}`);
-    }
+    validateLanguage(language);
 
     const rcloneReady = await this.checkRcloneAvailability();
     if (!rcloneReady) {
@@ -269,8 +259,7 @@ export class CloudflareR2Service {
         segmentUrls,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       return { success: false, error: errorMessage };
     }
   }
@@ -301,7 +290,7 @@ export class CloudflareR2Service {
       ];
 
       // Execute rclone command
-      const result = await this.executeRcloneCommand(command, args);
+      const result = await executeCommand(command, args);
 
       if (result.success) {
         console.log(`     ✅ Uploaded: ${path.basename(localPath)}`);
@@ -311,52 +300,9 @@ export class CloudflareR2Service {
         return { success: false, error: result.error };
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`     ❌ Upload error: ${errorMessage}`);
+      const errorMessage = logError('     ❌ Upload error', error);
       return { success: false, error: errorMessage };
     }
-  }
-
-  /**
-   * Execute rclone command with proper error handling
-   */
-  static async executeRcloneCommand(
-    command: string,
-    args: string[]
-  ): Promise<CommandResult> {
-    return new Promise((resolve) => {
-      const process = spawn(command, args);
-      let stdout = '';
-      let stderr = '';
-
-      process.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
-
-      process.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
-
-      process.on('close', (code) => {
-        if (code === 0) {
-          resolve({ success: true, output: stdout });
-        } else {
-          resolve({
-            success: false,
-            error: `rclone exited with code ${code}: ${stderr}`,
-            output: stdout,
-          });
-        }
-      });
-
-      process.on('error', (error) => {
-        resolve({
-          success: false,
-          error: `Failed to execute rclone: ${error.message}`,
-        });
-      });
-    });
   }
 
   /**
@@ -379,7 +325,7 @@ export class CloudflareR2Service {
       }
 
       const args = ['ls', remotePath, '--recursive'];
-      const result = await this.executeRcloneCommand(this.RCLONE_BINARY, args);
+      const result = await executeCommand(this.RCLONE_BINARY, args);
 
       if (result.success) {
         const files = this.parseRcloneListOutput(result.output || '');
@@ -390,9 +336,7 @@ export class CloudflareR2Service {
         return [];
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`❌ Error listing R2 files: ${errorMessage}`);
+      logError('❌ Error listing R2 files', error);
       return [];
     }
   }
@@ -442,7 +386,7 @@ export class CloudflareR2Service {
       const remotePath = `${this.REMOTE_NAME}:${this.BUCKET_NAME}/audio/${language}/${category}/${id}`;
       const args = ['purge', remotePath];
 
-      const result = await this.executeRcloneCommand(this.RCLONE_BINARY, args);
+      const result = await executeCommand(this.RCLONE_BINARY, args);
 
       if (result.success) {
         console.log(`✅ Deleted R2 files: ${id} (${language})`);
@@ -452,9 +396,7 @@ export class CloudflareR2Service {
         return false;
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`❌ Error deleting R2 files: ${errorMessage}`);
+      logError('❌ Error deleting R2 files', error);
       return false;
     }
   }
@@ -465,18 +407,15 @@ export class CloudflareR2Service {
   static async checkRcloneAvailability(): Promise<boolean> {
     try {
       console.log(`🔍 Checking rclone availability...`);
-      const result = await this.executeRcloneCommand(this.RCLONE_BINARY, [
-        'version',
-      ]);
+      const result = await executeCommand(this.RCLONE_BINARY, ['version']);
 
       if (result.success) {
         console.log(`✅ rclone found and working`);
 
         // Check if remote is configured
-        const configResult = await this.executeRcloneCommand(
-          this.RCLONE_BINARY,
-          ['listremotes']
-        );
+        const configResult = await executeCommand(this.RCLONE_BINARY, [
+          'listremotes',
+        ]);
         if (configResult.success) {
           const remotes = (configResult.output || '')
             .split('\n')
@@ -514,9 +453,7 @@ export class CloudflareR2Service {
         return false;
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`❌ Error checking rclone: ${errorMessage}`);
+      logError('❌ Error checking rclone', error);
       return false;
     }
   }

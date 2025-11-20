@@ -1,10 +1,9 @@
-import { NextResponse } from 'next/server';
+import { handleApiRoute } from '@/lib/api-helpers';
 import { ContentManager } from '@/lib/ContentManager';
 import { ReviewStats, Category } from '@/types/content';
-import { ContentSchema } from '@/lib/ContentSchema';
 
 export async function GET() {
-  try {
+  return handleApiRoute(async () => {
     // Get all source content
     const allContent = await ContentManager.list(null, 'zh-TW');
 
@@ -53,15 +52,6 @@ export async function GET() {
       byCategory,
     };
 
-    return NextResponse.json(stats);
-  } catch (error) {
-    console.error('Error fetching stats:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch stats',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
-  }
+    return stats;
+  }, 'Failed to fetch review stats');
 }

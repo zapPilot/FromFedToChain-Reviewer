@@ -3,6 +3,7 @@ import { AudioService } from '@/lib/services/AudioService';
 import { M3U8AudioService } from '@/lib/services/M3U8AudioService';
 import { isSupportedLanguage } from '@/config/languages';
 import type { Language } from '@/types/content';
+import { handleApiRoute } from '@/lib/api-helpers';
 
 /**
  * POST /api/pipeline/generate-audio
@@ -14,32 +15,32 @@ import type { Language } from '@/types/content';
  * - format?: "wav" | "m3u8" | "both" - Audio format (default: "wav")
  */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { contentId, language, format = 'wav' } = body;
+  const body = await request.json();
+  const { contentId, language, format = 'wav' } = body;
 
-    if (!contentId || !language) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Missing required parameters: contentId, language',
-        },
-        { status: 400 }
-      );
-    }
+  if (!contentId || !language) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Missing required parameters: contentId, language',
+      },
+      { status: 400 }
+    );
+  }
 
-    if (!isSupportedLanguage(language)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Unsupported language: ${language}`,
-        },
-        { status: 400 }
-      );
-    }
+  if (!isSupportedLanguage(language)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Unsupported language: ${language}`,
+      },
+      { status: 400 }
+    );
+  }
 
-    const targetLanguage = language as Language;
+  const targetLanguage = language as Language;
 
+  return handleApiRoute(async () => {
     const results: {
       wav?: { path: string; language: Language };
       m3u8?: Awaited<ReturnType<typeof M3U8AudioService.generateM3U8Audio>>;
@@ -69,20 +70,6 @@ export async function POST(request: NextRequest) {
       results.m3u8 = m3u8Result;
     }
 
-    return NextResponse.json({
-      success: true,
-      data: results,
-      message: `Audio generation completed for ${contentId} (${language})`,
-    });
-  } catch (error) {
-    console.error('Audio generation failed:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : 'Audio generation failed',
-      },
-      { status: 500 }
-    );
-  }
+    return results;
+  }, 'Audio generation failed');
 }

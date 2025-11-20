@@ -8,12 +8,13 @@ import {
   shouldGenerateAudio,
   isSupportedLanguage,
 } from '@/config/languages';
+import { validateLanguage } from '../middleware/validate-language';
 import type { Language } from '@/types/content';
+import type { BaseResult } from '@/types/service-results';
+import { getErrorMessage, logError } from '../utils/error-handler';
 
-interface AudioServiceResult {
-  success: boolean;
+interface AudioServiceResult extends BaseResult {
   audioPath?: string;
-  error?: string;
 }
 
 export class AudioService {
@@ -63,10 +64,9 @@ export class AudioService {
         results[language] = { success: true, audioPath };
         console.log(`✅ WAV audio generated: ${audioPath}`);
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        console.error(
-          `❌ WAV generation failed for ${language}: ${errorMessage}`
+        const errorMessage = logError(
+          `❌ WAV generation failed for ${language}`,
+          error
         );
         results[language] = { success: false, error: errorMessage };
       }
@@ -95,6 +95,8 @@ export class AudioService {
   }
 
   static async generateAudio(id: string, language: Language): Promise<string> {
+    validateLanguage(language);
+
     const sourceContent = await ContentManager.readSource(id);
     if (
       sourceContent.status === 'draft' ||
