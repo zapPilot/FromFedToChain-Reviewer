@@ -14,8 +14,11 @@
     "prepare": "husky install",
     "type-check": "tsc --noEmit",
     "lint:all": "npm run lint && npm run type-check",
+    "test": "npm run test:node",
     "test:node": "vitest run --passWithNoTests",
-    "test:node:watch": "vitest --watch"
+    "test:node:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
+    "precommit:test": "npm run type-check && npm run test:node"
   },
   "description": "Web-based review interface for FromFedToChain content",
   "dependencies": {
