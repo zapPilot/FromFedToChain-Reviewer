@@ -37,3 +37,7 @@ next-env.d.ts
 
 # project
 audio/
+
+# Claude hooks dependencies
+.claude/hooks/node_modules/
+.claude/hooks/package-lock.json

@@ -1,0 +1,78 @@
+{
+  "version": "1.0.0",
+  "skills": {
+    "nextjs-dev-guidelines": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Development guidelines for Next.js static site with TypeScript, Tailwind CSS, and markdown content",
+      "fileTriggers": {
+        "pathPatterns": [
+          "src/app/**/*.tsx",
+          "src/app/**/*.ts",
+          "src/components/**/*.tsx",
+          "src/hooks/**/*.ts",
+          "src/lib/**/*.ts"
+        ],
+        "ignorePatterns": [
+          "**/*.md",
+          "**/node_modules/**",
+          "**/.next/**",
+          "**/dist/**",
+          "**/build/**"
+        ]
+      },
+      "promptTriggers": {
+        "keywords": [
+          "component",
+          "page",
+          "api route",
+          "server component",
+          "client component",
+          "suspense",
+          "tanstack",
+          "form",
+          "tailwind",
+          "next.js",
+          "react",
+          "typescript",
+          "markdown",
+          "content",
+          "static site"
+        ],
+        "intentPatterns": [
+          "create.*component",
+          "add.*page",
+          "build.*ui",
+          "style.*with.*tailwind",
+          "fetch.*content",
+          "render.*markdown",
+          "add.*navigation"
+        ]
+      }
+    },
+    "skill-developer": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Meta-skill for creating and managing Claude Code skills",
+      "fileTriggers": {
+        "pathPatterns": [".claude/skills/**/*.md"]
+      },
+      "promptTriggers": {
+        "keywords": [
+          "create skill",
+          "new skill",
+          "skill development",
+          "claude skill"
+        ],
+        "intentPatterns": [
+          "create.*skill",
+          "develop.*skill",
+          "add.*skill",
+          "update.*skill"
+        ]
+      }
+    }
+  }
+}
