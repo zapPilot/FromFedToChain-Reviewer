@@ -40,4 +40,4 @@ audio/
 
 # Claude hooks dependencies
 .claude/hooks/node_modules/
-.claude/tsc-cache
+.claude/hooks/package-lock.json

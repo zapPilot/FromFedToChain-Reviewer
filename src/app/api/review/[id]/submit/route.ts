@@ -5,6 +5,7 @@ import {
   ReviewSubmitResponse,
   Category,
 } from '@/types/content';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(
   request: NextRequest,
@@ -26,33 +27,47 @@ export async function POST(
       );
     }
 
-    // Update category if changed
-    if (newCategory) {
-      await ContentManager.updateSourceCategory(id, newCategory as Category);
-    }
+    // Read content from Git to get metadata
+    const content = await ContentManager.readSource(id);
 
-    // Add feedback
+    // Prepare status record for Supabase
     const score = action === 'accept' ? 4 : 2;
     const reviewer = 'reviewer_web'; // Default reviewer name for web interface
-    await ContentManager.addContentFeedback(
-      id,
-      action === 'accept' ? 'accepted' : 'rejected',
-      score,
-      reviewer,
-      feedback || 'Approved for translation'
+    const reviewStatus = action === 'accept' ? 'accepted' : 'rejected';
+    const contentStatus = action === 'accept' ? 'reviewed' : 'draft';
+
+    // Use newCategory if provided, otherwise keep current category
+    const finalCategory = newCategory || content.category;
+
+    // Upsert status record in Supabase
+    const { error } = await supabaseAdmin.from('content_status').upsert(
+      {
+        id: content.id,
+        category: finalCategory,
+        language: content.language,
+        title: content.title,
+        status: contentStatus,
+        reviewer,
+        review_status: reviewStatus,
+        review_score: score,
+        review_feedback: feedback || 'Approved for translation',
+        review_timestamp: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'id',
+      }
     );
 
-    // Update status if accepted
-    if (action === 'accept') {
-      await ContentManager.updateSourceStatus(id, 'reviewed');
+    if (error) {
+      console.error('Error upserting review status to Supabase:', error);
+      throw new Error('Failed to save review status');
     }
 
-    // Get updated content
-    const updatedContent = await ContentManager.readSource(id);
-
+    // Return the content (unchanged from Git)
     const response: ReviewSubmitResponse = {
       success: true,
-      content: updatedContent,
+      content,
       message: `Content ${action}ed successfully`,
     };
 

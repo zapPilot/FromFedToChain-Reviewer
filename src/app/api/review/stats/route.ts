@@ -1,28 +1,47 @@
 import { handleApiRoute } from '@/lib/api-helpers';
 import { ContentManager } from '@/lib/ContentManager';
 import { ReviewStats, Category } from '@/types/content';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   return handleApiRoute(async () => {
-    // Get all source content
+    // Get all source content from Git
     const allContent = await ContentManager.list(null, 'zh-TW');
 
-    // Count pending (draft, not rejected)
+    // Get review status from Supabase
+    const { data: statusRecords, error } = await supabaseAdmin
+      .from('content_status')
+      .select('id, review_status, category');
+
+    if (error) {
+      console.error('Error fetching status from Supabase:', error);
+      // Fall back to empty array if Supabase fails
+    }
+
+    // Create a map of content_id -> review_status
+    const statusMap = new Map(
+      statusRecords?.map((r) => [r.id, r.review_status]) || []
+    );
+
+    // Count pending (no review status or not rejected)
     const pending = allContent.filter((c) => {
-      if (c.status !== 'draft') return false;
-      const review = c.feedback?.content_review;
-      return !review || review.status !== 'rejected';
+      const reviewStatus = statusMap.get(c.id);
+      // If no status record in Supabase, consider it pending
+      // If status is explicitly rejected, exclude it
+      return !reviewStatus || reviewStatus !== 'rejected';
     }).length;
 
     // Count reviewed (accepted)
-    const reviewed = allContent.filter(
-      (c) => c.feedback?.content_review?.status === 'accepted'
-    ).length;
+    const reviewed = allContent.filter((c) => {
+      const reviewStatus = statusMap.get(c.id);
+      return reviewStatus === 'accepted';
+    }).length;
 
     // Count rejected
-    const rejected = allContent.filter(
-      (c) => c.feedback?.content_review?.status === 'rejected'
-    ).length;
+    const rejected = allContent.filter((c) => {
+      const reviewStatus = statusMap.get(c.id);
+      return reviewStatus === 'rejected';
+    }).length;
 
     // Count by category (only pending content)
     const byCategory: Record<Category, number> = {
@@ -36,9 +55,8 @@ export async function GET() {
 
     allContent
       .filter((c) => {
-        if (c.status !== 'draft') return false;
-        const review = c.feedback?.content_review;
-        return !review || review.status !== 'rejected';
+        const reviewStatus = statusMap.get(c.id);
+        return !reviewStatus || reviewStatus !== 'rejected';
       })
       .forEach((c) => {
         byCategory[c.category]++;

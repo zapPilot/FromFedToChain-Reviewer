@@ -1,6 +1,25 @@
 # Review Web - Content Review Interface
 
-Modern web-based review interface for the FromFedToChain content management system.
+Modern web-based review interface for the FromFedToChain content management system with integrated translation and audio processing pipeline.
+
+## Quick Start
+
+Get up and running in 5 minutes!
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Run development server
+npm run dev
+
+# 3. Open browser
+open http://localhost:3000
+```
+
+That's it! The app will use the default content directory (`../FromFedToChain/content`).
+
+> **Need custom setup?** See [Setup](#setup) below or check [docs/setup/pipeline.md](docs/setup/pipeline.md) for full pipeline configuration.
 
 ## Features
 
@@ -134,14 +153,25 @@ npm run start
 
 ## Deployment
 
-### Vercel (Recommended)
+Choose your deployment platform:
 
-1. Push code to GitHub
-2. Import repository in Vercel
-3. Configure environment variable: `CONTENT_DIR`
-4. Deploy
+- **Fly.io** (Recommended) - Full-stack deployment with Supabase
+  - See [DEPLOYMENT.md](DEPLOYMENT.md) or [docs/deployment/flyio.md](docs/deployment/flyio.md)
+  - Supports all features including API routes and pipeline
+  - Free tier available
 
-The app will auto-deploy on every push to main.
+- **GitHub Pages** - Static deployment with GitHub Actions
+  - See [docs/deployment/github-pages.md](docs/deployment/github-pages.md)
+  - Pipeline runs via GitHub Actions
+  - Free for public repositories
+
+## Documentation
+
+- **[Quick Start](#quick-start)** - Get running in 5 minutes
+- **[Pipeline Setup](docs/setup/pipeline.md)** - FFmpeg, rclone, Google Cloud configuration
+- **[Deployment Guide](DEPLOYMENT.md)** - Deploy to Fly.io with Supabase
+- **[GitHub Pages Setup](docs/deployment/github-pages.md)** - Alternative static deployment
+- **[API Reference](#api-routes)** - Complete API documentation
 
 ## Contributing
 
