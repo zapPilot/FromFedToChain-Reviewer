@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { handleApiRoute } from '@/lib/api-helpers';
 import { TranslationService } from '@/lib/services/TranslationService';
+import { ValidationError } from '@/lib/errors';
 
 /**
  * POST /api/pipeline/translate
@@ -10,17 +12,14 @@ import { TranslationService } from '@/lib/services/TranslationService';
  * - targetLanguage?: string - Specific language (default: all)
  */
 export async function POST(request: NextRequest) {
-  try {
+  return handleApiRoute(async () => {
     const body = await request.json();
     const { contentId, targetLanguage } = body;
 
     if (!contentId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Missing required parameter: contentId',
-        },
-        { status: 400 }
+      throw new ValidationError(
+        'Missing required parameter: contentId',
+        'contentId'
       );
     }
 
@@ -38,21 +37,12 @@ export async function POST(request: NextRequest) {
       result = await TranslationService.translateAll(contentId);
     }
 
-    return NextResponse.json({
+    return {
       success: true,
       data: result,
       message: `Translation completed for ${contentId}`,
-    });
-  } catch (error) {
-    console.error('Translation failed:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Translation failed',
-      },
-      { status: 500 }
-    );
-  }
+    };
+  }, 'Translation failed');
 }
 
 /**
@@ -60,25 +50,13 @@ export async function POST(request: NextRequest) {
  * Get list of content needing translation
  */
 export async function GET(request: NextRequest) {
-  try {
+  return handleApiRoute(async () => {
     const content = await TranslationService.getContentNeedingTranslation();
 
-    return NextResponse.json({
+    return {
       success: true,
       data: content,
       count: content.length,
-    });
-  } catch (error) {
-    console.error('Failed to get content needing translation:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to get content needing translation',
-      },
-      { status: 500 }
-    );
-  }
+    };
+  }, 'Failed to get content needing translation');
 }

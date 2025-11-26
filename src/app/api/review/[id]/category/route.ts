@@ -1,21 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { handleApiRoute } from '@/lib/api-helpers';
 import { ContentManager } from '@/lib/ContentManager';
 import { Category } from '@/types/content';
+import { ValidationError } from '@/lib/errors';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  const { id } = await params;
+
+  return handleApiRoute(async () => {
     const body = await request.json();
     const { category } = body as { category: Category };
 
     if (!category) {
-      return NextResponse.json(
-        { error: 'Category is required' },
-        { status: 400 }
-      );
+      throw new ValidationError('Category is required', 'category');
     }
 
     // Update category
@@ -24,19 +24,10 @@ export async function PATCH(
       category
     );
 
-    return NextResponse.json({
+    return {
       success: true,
       content: updatedContent,
       message: 'Category updated successfully',
-    });
-  } catch (error) {
-    console.error('Error updating category:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to update category',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
-  }
+    };
+  }, 'Failed to update category');
 }

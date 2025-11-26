@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { handleApiRoute } from '@/lib/api-helpers';
 import { KnowledgeManager } from '@/lib/KnowledgeManager';
+import { NotFoundError } from '@/lib/errors';
 
 /**
  * GET /api/knowledge/concepts/[id]
@@ -9,36 +11,21 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  const { id } = await params;
 
+  return handleApiRoute(async () => {
     // Initialize knowledge base if needed
     await KnowledgeManager.initialize();
 
     const concept = await KnowledgeManager.getConcept(id);
 
     if (!concept) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Concept not found: ${id}`,
-        },
-        { status: 404 }
-      );
+      throw new NotFoundError('Concept', id);
     }
 
-    return NextResponse.json({
+    return {
       success: true,
       data: concept,
-    });
-  } catch (error) {
-    console.error('Failed to get concept:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get concept',
-      },
-      { status: 500 }
-    );
-  }
+    };
+  }, 'Failed to get concept');
 }

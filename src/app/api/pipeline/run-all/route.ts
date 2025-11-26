@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { handleApiRoute } from '@/lib/api-helpers';
 import { ContentPipelineService } from '@/lib/services/ContentPipelineService';
 
 interface PipelineRunSummary {
@@ -13,16 +13,16 @@ interface PipelineRunSummary {
 }
 
 export async function POST() {
-  try {
+  return handleApiRoute(async () => {
     const pending = await ContentPipelineService.getAllPendingContent();
 
     if (pending.length === 0) {
-      return NextResponse.json({
+      return {
         success: true,
         processed: 0,
         results: [] as PipelineRunSummary[],
         message: 'No approved or in-progress content requires pipeline work.',
-      });
+      };
     }
 
     const results: PipelineRunSummary[] = [];
@@ -38,23 +38,11 @@ export async function POST() {
       });
     }
 
-    return NextResponse.json({
+    return {
       success: true,
       processed: results.length,
       results,
       message: `Processed ${results.length} content item${results.length === 1 ? '' : 's'} through the pipeline`,
-    });
-  } catch (error) {
-    console.error('Bulk pipeline run failed:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to run pipeline for approved content',
-      },
-      { status: 500 }
-    );
-  }
+    };
+  }, 'Failed to run pipeline for approved content');
 }

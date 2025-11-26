@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { handleApiRoute } from '@/lib/api-helpers';
 import { KnowledgeManager } from '@/lib/KnowledgeManager';
 
 /**
@@ -12,7 +13,7 @@ import { KnowledgeManager } from '@/lib/KnowledgeManager';
  * - includeContext: Include context in search (default: false)
  */
 export async function GET(request: NextRequest) {
-  try {
+  return handleApiRoute(async () => {
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category');
     const query = searchParams.get('query');
@@ -29,29 +30,19 @@ export async function GET(request: NextRequest) {
         fuzzy,
         includeContext,
       });
-      return NextResponse.json({
+      return {
         success: true,
         data: results,
         count: results.length,
-      });
+      };
     }
 
     // Otherwise list concepts
     const concepts = await KnowledgeManager.listConcepts(category);
-    return NextResponse.json({
+    return {
       success: true,
       data: concepts,
       count: concepts.length,
-    });
-  } catch (error) {
-    console.error('Failed to get concepts:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : 'Failed to get concepts',
-      },
-      { status: 500 }
-    );
-  }
+    };
+  }, 'Failed to get concepts');
 }

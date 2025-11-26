@@ -3,7 +3,7 @@ import { handleApiRoute } from '@/lib/api-helpers';
 import { ContentManager } from '@/lib/ContentManager';
 import { ContentItem, PaginatedResponse } from '@/types/content';
 import { paginate } from '@/lib/utils/pagination';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     let content = await ContentManager.list('draft', 'zh-TW');
 
     // Get review status from Supabase to filter out rejected content
-    const { data: statusRecords, error } = await supabaseAdmin
+    const { data: statusRecords, error } = await getSupabaseAdmin()
       .from('content_status')
       .select('id, review_status, review_feedback, reviewer, review_timestamp')
       .eq('review_status', 'rejected');

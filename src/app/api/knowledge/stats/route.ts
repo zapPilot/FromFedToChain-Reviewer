@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { handleApiRoute } from '@/lib/api-helpers';
 import { KnowledgeManager } from '@/lib/KnowledgeManager';
 
 /**
@@ -6,27 +7,15 @@ import { KnowledgeManager } from '@/lib/KnowledgeManager';
  * Get knowledge base statistics
  */
 export async function GET(request: NextRequest) {
-  try {
+  return handleApiRoute(async () => {
     // Initialize knowledge base if needed
     await KnowledgeManager.initialize();
 
     const stats = await KnowledgeManager.getStats();
 
-    return NextResponse.json({
+    return {
       success: true,
       data: stats,
-    });
-  } catch (error) {
-    console.error('Failed to get knowledge stats:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to get knowledge stats',
-      },
-      { status: 500 }
-    );
-  }
+    };
+  }, 'Failed to get knowledge stats');
 }

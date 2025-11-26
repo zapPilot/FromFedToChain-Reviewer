@@ -1,16 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { handleApiRoute } from '@/lib/api-helpers';
 import { ContentManager } from '@/lib/ContentManager';
 import { ContentDetailResponse, NavigationInfo } from '@/types/content';
+import { NotFoundError } from '@/lib/errors';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  const { id } = await params;
 
+  return handleApiRoute(async () => {
     // Get the requested content
-    const content = await ContentManager.readSource(id);
+    let content;
+    try {
+      content = await ContentManager.readSource(id);
+    } catch (error) {
+      throw new NotFoundError('Content', id);
+    }
 
     // Get all pending content for navigation
     const allPending = await ContentManager.getSourceForReview();
@@ -30,15 +37,6 @@ export async function GET(
       navigation,
     };
 
-    return NextResponse.json(response);
-  } catch (error) {
-    console.error('Error fetching content:', error);
-    return NextResponse.json(
-      {
-        error: 'Content not found',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 404 }
-    );
-  }
+    return response;
+  }, 'Failed to fetch content detail');
 }

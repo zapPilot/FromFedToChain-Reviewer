@@ -14,15 +14,18 @@ if (!supabaseServiceKey) {
 
 // Server-side client with service role key (bypasses RLS)
 // Use this for API routes that need full database access
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  db: {
-    schema: 'review_web', // Use dedicated schema
-  },
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+// Returns a new client instance to prevent accidental client-side exposure
+export function getSupabaseAdmin() {
+  return createClient(supabaseUrl!, supabaseServiceKey!, {
+    db: {
+      schema: 'review_web', // Use dedicated schema
+    },
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
 
 // Client-side client with anon key (respects RLS)
 // For future use if you want authenticated users to access data directly

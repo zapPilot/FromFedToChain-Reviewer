@@ -4,13 +4,14 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getErrorMessage } from './utils/error-handler';
+import { ApiError } from './errors';
+import { errorResponse, successResponse } from './api-responses';
 
 /**
  * Handles API route execution with consistent error handling
  * @param handler - Async function that performs the route logic
  * @param errorContext - Context message for error logging
- * @returns NextResponse with handler result directly (not wrapped)
+ * @returns NextResponse with standardized format
  */
 export async function handleApiRoute<T>(
   handler: () => Promise<T>,
@@ -18,17 +19,21 @@ export async function handleApiRoute<T>(
 ): Promise<NextResponse> {
   try {
     const result = await handler();
-    // Return result directly to preserve original response shapes
-    return NextResponse.json(result);
+    return successResponse(result);
   } catch (error) {
-    const message = getErrorMessage(error);
-    console.error(`${errorContext}: ${message}`);
-    return NextResponse.json(
-      {
-        error: errorContext,
-        message: message,
-      },
-      { status: 500 }
+    console.error(`${errorContext}:`, error);
+
+    // Handle known API errors
+    if (error instanceof ApiError) {
+      return errorResponse(error);
+    }
+
+    // Handle unknown errors
+    return errorResponse(
+      new ApiError(
+        error instanceof Error ? error.message : 'An unknown error occurred',
+        500
+      )
     );
   }
 }

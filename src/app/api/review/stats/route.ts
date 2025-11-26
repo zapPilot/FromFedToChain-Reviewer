@@ -1,7 +1,7 @@
 import { handleApiRoute } from '@/lib/api-helpers';
 import { ContentManager } from '@/lib/ContentManager';
 import { ReviewStats, Category } from '@/types/content';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   return handleApiRoute(async () => {
@@ -9,7 +9,7 @@ export async function GET() {
     const allContent = await ContentManager.list(null, 'zh-TW');
 
     // Get review status from Supabase
-    const { data: statusRecords, error } = await supabaseAdmin
+    const { data: statusRecords, error } = await getSupabaseAdmin()
       .from('content_status')
       .select('id, review_status, category');
 
