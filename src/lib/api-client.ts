@@ -20,16 +20,56 @@ class ApiClient {
       ...options,
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({
-        message: 'An error occurred',
-      }));
-      throw new Error(
-        error.message || `HTTP error! status: ${response.status}`
-      );
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error(`Unexpected response from ${url}`);
     }
 
-    return response.json();
+    // Handle standardized API response format: { success: boolean, data?: T, error?: {...} }
+    const body = payload as {
+      success: boolean;
+      data?: unknown;
+      error?: { message?: string; code?: string; field?: string };
+      pagination?: unknown;
+    } | null;
+
+    if (body && typeof body === 'object' && 'success' in body) {
+      if (!body.success) {
+        // Handle error response
+        const errorMessage =
+          body.error?.message ||
+          `Request to ${url} failed with status ${response.status}`;
+        throw new Error(errorMessage);
+      }
+
+      // Handle success response - unwrap data field
+      if (body.data !== undefined) {
+        // For paginated responses, data contains { content: [...], pagination: {...} }
+        // Return the data directly as it should match the expected type
+        return body.data as T;
+      }
+
+      // Fallback: if no data field but success is true, return the whole body
+      // (for backward compatibility with non-standardized responses)
+      return body as T;
+    }
+
+    // Handle non-standardized error responses
+    if (!response.ok) {
+      let message = `HTTP error! status: ${response.status}`;
+      if (body && typeof body === 'object') {
+        const bodyObj = body as Record<string, unknown>;
+        if ('message' in bodyObj && typeof bodyObj.message === 'string') {
+          message = bodyObj.message;
+        }
+      }
+      throw new Error(message);
+    }
+
+    // Handle non-standardized success responses (backward compatibility)
+    return payload as T;
   }
 
   // Get pending content for review
