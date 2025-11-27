@@ -5,7 +5,9 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-
+env:
+  NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+  SUPABASE_SERVICE_KEY: placeholder
 jobs:
   test-nodejs:
     runs-on: ubuntu-latest
