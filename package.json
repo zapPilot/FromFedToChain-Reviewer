@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start --hostname 0.0.0.0",
+    "start": "next start --hostname ::",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "clean": "rm -rf .next out",
     "format": "prettier --write . --ignore-path .prettierignore",
