@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AudioService } from '@/lib/services/AudioService';
-import { M3U8AudioService } from '@/lib/services/M3U8AudioService';
+import { GitHubWorkflowService } from '@/lib/services/GitHubWorkflowService';
 import { isSupportedLanguage } from '@/config/languages';
-import type { Language } from '@/types/content';
-import { handleApiRoute } from '@/lib/api-helpers';
 
 /**
  * POST /api/pipeline/generate-audio
- * Generate audio files (WAV and/or M3U8) for content
+ * Trigger GitHub Actions workflow to generate audio files (WAV and/or M3U8)
  *
  * Body:
  * - contentId: string - Content ID to process
@@ -38,38 +35,44 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const targetLanguage = language as Language;
+  try {
+    // Determine which workflow to trigger based on format
+    let workflow: string;
+    const inputs = { contentId, language };
 
-  return handleApiRoute(async () => {
-    const results: {
-      wav?: { path: string; language: Language };
-      m3u8?: Awaited<ReturnType<typeof M3U8AudioService.generateM3U8Audio>>;
-    } = {};
-
-    // Generate WAV audio
-    if (format === 'wav' || format === 'both') {
-      console.log(
-        `🎙️ Generating WAV audio for ${contentId} (${targetLanguage})...`
-      );
-      const wavPath = await AudioService.generateAudio(
-        contentId,
-        targetLanguage
-      );
-      results.wav = { path: wavPath, language: targetLanguage };
+    if (format === 'm3u8') {
+      workflow = 'pipeline-m3u8.yml';
+    } else if (format === 'both') {
+      // Trigger audio first, M3U8 will be triggered separately or in sequence
+      await GitHubWorkflowService.triggerWorkflow('pipeline-audio.yml', inputs);
+      workflow = 'pipeline-m3u8.yml';
+    } else {
+      // Default: wav
+      workflow = 'pipeline-audio.yml';
     }
 
-    // Generate M3U8 audio
-    if (format === 'm3u8' || format === 'both') {
-      console.log(
-        `🎵 Generating M3U8 audio for ${contentId} (${targetLanguage})...`
-      );
-      const m3u8Result = await M3U8AudioService.generateM3U8Audio(
-        contentId,
-        targetLanguage
-      );
-      results.m3u8 = m3u8Result;
-    }
+    const result = await GitHubWorkflowService.triggerWorkflow(
+      workflow,
+      inputs
+    );
 
-    return results;
-  }, 'Audio generation failed');
+    return NextResponse.json({
+      success: true,
+      workflowTriggered: true,
+      workflow,
+      message:
+        'Audio generation started in background. Check status in a few minutes.',
+      data: result,
+    });
+  } catch (error) {
+    console.error('Failed to trigger audio generation workflow:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to trigger workflow',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
 }

@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { handleApiRoute } from '@/lib/api-helpers';
-import { ContentPipelineService } from '@/lib/services/ContentPipelineService';
-import { ContentSchema } from '@/lib/ContentSchema';
-import type { Status } from '@/types/content';
+import { GitHubWorkflowService } from '@/lib/services/GitHubWorkflowService';
 
 /**
  * POST /api/pipeline/process
- * Process content through the full pipeline (translation → audio → M3U8 → upload → social)
+ * Trigger full pipeline workflows (translation → audio → M3U8 → upload)
  *
  * Body:
  * - contentId: string - Content ID to process
- * - startFrom?: string - Optional pipeline step to start from
  */
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { contentId, startFrom } = body;
+  const { contentId } = body;
 
   if (!contentId) {
     return NextResponse.json(
@@ -26,33 +22,42 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Validate startFrom parameter
-  let startStatus: Status | undefined;
-  if (startFrom) {
-    const allowed = ContentSchema.getStatuses();
-    if (!allowed.includes(startFrom as Status)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Invalid pipeline step: ${startFrom}`,
-        },
-        { status: 400 }
-      );
+  console.log(`🚀 Triggering full pipeline for content: ${contentId}`);
+
+  try {
+    // Define pipeline workflow sequence
+    const workflows = [
+      { step: 'translate', workflow: 'pipeline-translate.yml' },
+      { step: 'audio', workflow: 'pipeline-audio.yml' },
+      { step: 'm3u8', workflow: 'pipeline-m3u8.yml' },
+      { step: 'cloudflare', workflow: 'pipeline-cloudflare.yml' },
+    ];
+
+    const inputs = { contentId };
+
+    // Trigger each workflow (they will run sequentially in GitHub Actions)
+    for (const { step, workflow } of workflows) {
+      console.log(`Triggering ${step} workflow...`);
+      await GitHubWorkflowService.triggerWorkflow(workflow, inputs);
     }
-    startStatus = startFrom as Status;
-  }
 
-  console.log(
-    `🚀 Starting pipeline processing for content: ${contentId}${startFrom ? ` (from: ${startFrom})` : ''}`
-  );
-
-  return handleApiRoute(async () => {
-    const result = await ContentPipelineService.processContent(
+    return NextResponse.json({
+      success: true,
+      message: 'Pipeline workflows triggered successfully',
+      workflows: workflows.map((w) => w.workflow),
       contentId,
-      startStatus
+    });
+  } catch (error) {
+    console.error('Failed to trigger pipeline workflows:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to trigger pipeline',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
     );
-    return result;
-  }, 'Pipeline processing failed');
+  }
 }
 
 /**
@@ -76,15 +81,26 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return handleApiRoute(async () => {
+  try {
     const { ContentManager } = await import('@/lib/ContentManager');
     const sourceContent = await ContentManager.readSource(contentId);
 
-    return {
+    return NextResponse.json({
+      success: true,
       contentId,
       status: sourceContent.status,
       availableLanguages: await ContentManager.getAvailableLanguages(contentId),
       lastUpdated: sourceContent.updated_at,
-    };
-  }, 'Failed to get pipeline status');
+    });
+  } catch (error) {
+    console.error('Failed to get pipeline status:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to get pipeline status',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
 }

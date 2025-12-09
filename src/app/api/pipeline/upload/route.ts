@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { handleApiRoute } from '@/lib/api-helpers';
-import { CloudflareR2Service } from '@/lib/services/CloudflareR2Service';
+import { GitHubWorkflowService } from '@/lib/services/GitHubWorkflowService';
 import { isSupportedLanguage } from '@/config/languages';
-import type { Language } from '@/types/content';
 
 /**
  * POST /api/pipeline/upload
- * Upload audio files to Cloudflare R2
+ * Trigger GitHub Actions workflow to upload audio files to Cloudflare R2
  *
  * Body:
  * - contentId: string - Content ID
@@ -37,38 +35,34 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const targetLanguage = language as Language;
+  console.log(
+    `☁️ Triggering R2 upload workflow for ${contentId} (${language}, format: ${format})...`
+  );
 
-  return handleApiRoute(async () => {
-    const results: {
-      wav?: Awaited<ReturnType<typeof CloudflareR2Service.uploadWAVAudio>>;
-      m3u8?: Awaited<ReturnType<typeof CloudflareR2Service.uploadM3U8Audio>>;
-    } = {};
+  try {
+    const inputs = { contentId, language, format };
 
-    // Upload WAV
-    if (format === 'wav' || format === 'both') {
-      console.log(
-        `☁️ Uploading WAV to R2: ${contentId} (${targetLanguage})...`
-      );
-      const wavResult = await CloudflareR2Service.uploadWAVAudio(
-        contentId,
-        targetLanguage
-      );
-      results.wav = wavResult;
-    }
+    const result = await GitHubWorkflowService.triggerWorkflow(
+      'pipeline-cloudflare.yml',
+      inputs
+    );
 
-    // Upload M3U8
-    if (format === 'm3u8' || format === 'both') {
-      console.log(
-        `☁️ Uploading M3U8 to R2: ${contentId} (${targetLanguage})...`
-      );
-      const m3u8Result = await CloudflareR2Service.uploadM3U8Audio(
-        contentId,
-        targetLanguage
-      );
-      results.m3u8 = m3u8Result;
-    }
-
-    return results;
-  }, 'Upload failed');
+    return NextResponse.json({
+      success: true,
+      workflowTriggered: true,
+      workflow: 'pipeline-cloudflare.yml',
+      message: 'R2 upload workflow started in background.',
+      data: result,
+    });
+  } catch (error) {
+    console.error('Failed to trigger R2 upload workflow:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to trigger upload workflow',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
 }

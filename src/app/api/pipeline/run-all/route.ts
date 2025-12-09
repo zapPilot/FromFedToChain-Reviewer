@@ -1,48 +1,101 @@
-import { handleApiRoute } from '@/lib/api-helpers';
-import { ContentPipelineService } from '@/lib/services/ContentPipelineService';
+import { NextResponse } from 'next/server';
+import { GitHubWorkflowService } from '@/lib/services/GitHubWorkflowService';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
-interface PipelineRunSummary {
+interface WorkflowTriggerResult {
   contentId: string;
-  finalStatus: string;
-  steps: Array<{
-    from: string;
-    to: string | null;
-    description: string;
-    success: boolean;
-  }>;
+  workflowsTriggered: string[];
+  success: boolean;
+  error?: string;
 }
 
+/**
+ * POST /api/pipeline/run-all
+ * Trigger pipeline workflows for all pending content
+ */
 export async function POST() {
-  return handleApiRoute(async () => {
-    const pending = await ContentPipelineService.getAllPendingContent();
+  try {
+    // Query Supabase for content needing pipeline processing
+    const { data: pending, error } = await getSupabaseAdmin()
+      .from('content')
+      .select('id, status')
+      .in('status', ['approved', 'in_progress'])
+      .order('created_at', { ascending: false });
 
-    if (pending.length === 0) {
-      return {
-        success: true,
-        processed: 0,
-        results: [] as PipelineRunSummary[],
-        message: 'No approved or in-progress content requires pipeline work.',
-      };
+    if (error) {
+      throw new Error(`Failed to fetch pending content: ${error.message}`);
     }
 
-    const results: PipelineRunSummary[] = [];
-
-    for (const item of pending) {
-      const outcome = await ContentPipelineService.processContent(
-        item.content.id
-      );
-      results.push({
-        contentId: item.content.id,
-        finalStatus: outcome.finalStatus,
-        steps: outcome.steps,
+    if (!pending || pending.length === 0) {
+      return NextResponse.json({
+        success: true,
+        processed: 0,
+        results: [],
+        message: 'No approved or in-progress content requires pipeline work.',
       });
     }
 
-    return {
+    console.log(
+      `🚀 Triggering pipeline workflows for ${pending.length} content item(s)...`
+    );
+
+    const results: WorkflowTriggerResult[] = [];
+    const workflows = [
+      'pipeline-translate.yml',
+      'pipeline-audio.yml',
+      'pipeline-m3u8.yml',
+      'pipeline-cloudflare.yml',
+    ];
+
+    // Trigger workflows for each pending content item
+    for (const item of pending) {
+      const contentId = item.id;
+      const triggeredWorkflows: string[] = [];
+
+      try {
+        console.log(`Triggering workflows for content: ${contentId}`);
+
+        // Trigger each workflow in sequence
+        for (const workflow of workflows) {
+          await GitHubWorkflowService.triggerWorkflow(workflow, { contentId });
+          triggeredWorkflows.push(workflow);
+        }
+
+        results.push({
+          contentId,
+          workflowsTriggered: triggeredWorkflows,
+          success: true,
+        });
+      } catch (error) {
+        console.error(`Failed to trigger workflows for ${contentId}:`, error);
+        results.push({
+          contentId,
+          workflowsTriggered: triggeredWorkflows,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    const successCount = results.filter((r) => r.success).length;
+
+    return NextResponse.json({
       success: true,
       processed: results.length,
+      successful: successCount,
+      failed: results.length - successCount,
       results,
-      message: `Processed ${results.length} content item${results.length === 1 ? '' : 's'} through the pipeline`,
-    };
-  }, 'Failed to run pipeline for approved content');
+      message: `Triggered pipeline workflows for ${successCount}/${results.length} content item(s)`,
+    });
+  } catch (error) {
+    console.error('Failed to run pipeline for pending content:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to run pipeline for pending content',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
 }

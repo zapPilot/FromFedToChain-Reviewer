@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { githubClient, WORKFLOWS } from '@/lib/github-client';
 import { Button, type ButtonProps } from '@/components/ui/button';
-// TODO: Install sonner for toast notifications
-// import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 
 interface PipelineActionButtonProps {
   contentId: string;
   variant?: ButtonProps['variant'];
   className?: string;
   onSuccess?: () => void;
+  navigateToStatus?: boolean;
 }
 
 export function PipelineActionButton({
@@ -19,8 +20,10 @@ export function PipelineActionButton({
   variant = 'default',
   className,
   onSuccess,
+  navigateToStatus = true,
 }: PipelineActionButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const router = useRouter();
 
   const triggerPipeline = useMutation({
     mutationFn: async () => {
@@ -36,15 +39,24 @@ export function PipelineActionButton({
       return { contentId };
     },
     onSuccess: () => {
-      // TODO: Use toast notification when sonner is installed
-      console.log('Pipeline started! Translation workflow has been triggered.');
-      alert('Pipeline started! Check the pipeline page for progress.');
+      toast.success('Pipeline started! Translation workflow triggered.', {
+        description: navigateToStatus
+          ? 'Redirecting to status page...'
+          : 'Check the pipeline page for progress.',
+      });
+
+      if (navigateToStatus) {
+        setTimeout(() => {
+          router.push(`/pipeline/${contentId}`);
+        }, 1000);
+      }
+
       onSuccess?.();
     },
     onError: (error: Error) => {
-      // TODO: Use toast notification when sonner is installed
-      console.error('Failed to start pipeline:', error.message);
-      alert(`Failed to start pipeline: ${error.message}`);
+      toast.error('Failed to start pipeline', {
+        description: error.message,
+      });
     },
   });
 

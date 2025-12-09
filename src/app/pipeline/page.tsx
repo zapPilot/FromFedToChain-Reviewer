@@ -6,20 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 
-interface PipelineRunSummary {
+interface WorkflowTriggerResult {
   contentId: string;
-  finalStatus: string;
-  stepCount: number;
+  workflowsTriggered: string[];
+  success: boolean;
+  error?: string;
 }
 
 export default function PipelineHubPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [results, setResults] = useState<PipelineRunSummary[]>([]);
+  const [results, setResults] = useState<WorkflowTriggerResult[]>([]);
 
   const triggerPipelineRun = async () => {
-    const toastId = toast.loading('Scanning and processing pending content…');
+    const toastId = toast.loading('Triggering GitHub Actions workflows…');
     setIsRunning(true);
     setError(null);
     setMessage(null);
@@ -30,29 +31,18 @@ export default function PipelineHubPage() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to run pipeline');
+        throw new Error(data.error || 'Failed to trigger workflows');
       }
 
-      const normalized: PipelineRunSummary[] = (data.results || []).map(
-        (item: {
-          contentId: string;
-          finalStatus: string;
-          steps?: Array<unknown>;
-        }) => ({
-          contentId: item.contentId,
-          finalStatus: item.finalStatus,
-          stepCount: Array.isArray(item.steps) ? item.steps.length : 0,
-        })
-      );
-
-      setResults(normalized);
+      setResults(data.results || []);
       const successMessage =
-        data.message || `Processed ${normalized.length} content items.`;
+        data.message ||
+        `Triggered workflows for ${data.successful || 0} content item(s)`;
       setMessage(successMessage);
       toast.success(successMessage, { id: toastId });
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to run pipeline';
+        err instanceof Error ? err.message : 'Failed to trigger workflows';
       setError(errorMessage);
       toast.error(errorMessage, { id: toastId });
       setResults([]);
@@ -103,8 +93,8 @@ export default function PipelineHubPage() {
           {results.length > 0 && (
             <div className="space-y-3">
               <p className="text-sm text-gray-600">
-                Latest run summary ({results.length} item
-                {results.length === 1 ? '' : 's'}):
+                Workflows triggered for {results.length} item
+                {results.length === 1 ? '' : 's'}:
               </p>
               <ul className="space-y-2">
                 {results.map((item) => (
@@ -112,21 +102,36 @@ export default function PipelineHubPage() {
                     key={item.contentId}
                     className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 md:flex-row md:items-center md:justify-between"
                   >
-                    <div>
+                    <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">
                         {item.contentId}
                       </p>
-                      <p className="text-xs text-gray-600">
-                        Final status: {item.finalStatus} · Steps executed:{' '}
-                        {item.stepCount}
-                      </p>
+                      {item.success ? (
+                        <p className="text-xs text-gray-600">
+                          ✓ Triggered {item.workflowsTriggered.length} workflow
+                          {item.workflowsTriggered.length === 1
+                            ? ''
+                            : 's'}:{' '}
+                          {item.workflowsTriggered
+                            .map((w) =>
+                              w.replace('pipeline-', '').replace('.yml', '')
+                            )
+                            .join(', ')}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-red-600">
+                          ✗ Failed: {item.error}
+                        </p>
+                      )}
                     </div>
-                    <Link
-                      href={`/pipeline/${item.contentId}`}
-                      className="text-sm font-medium text-blue-600 hover:text-blue-700"
-                    >
-                      View status →
-                    </Link>
+                    {item.success && (
+                      <Link
+                        href={`/pipeline/${item.contentId}`}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                      >
+                        Monitor progress →
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

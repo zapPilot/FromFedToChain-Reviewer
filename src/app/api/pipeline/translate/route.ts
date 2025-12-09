@@ -1,48 +1,61 @@
-import { NextRequest } from 'next/server';
-import { handleApiRoute } from '@/lib/api-helpers';
-import { TranslationService } from '@/lib/services/TranslationService';
-import { ValidationError } from '@/lib/errors';
+import { NextRequest, NextResponse } from 'next/server';
+import { GitHubWorkflowService } from '@/lib/services/GitHubWorkflowService';
 
 /**
  * POST /api/pipeline/translate
- * Translate content to target language(s)
+ * Trigger GitHub Actions workflow to translate content
  *
  * Body:
  * - contentId: string - Content ID to translate
- * - targetLanguage?: string - Specific language (default: all)
+ * - targetLanguage?: string - Specific language (passed to workflow, default: all)
  */
 export async function POST(request: NextRequest) {
-  return handleApiRoute(async () => {
-    const body = await request.json();
-    const { contentId, targetLanguage } = body;
+  const body = await request.json();
+  const { contentId, targetLanguage } = body;
 
-    if (!contentId) {
-      throw new ValidationError(
-        'Missing required parameter: contentId',
-        'contentId'
-      );
-    }
+  if (!contentId) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Missing required parameter: contentId',
+      },
+      { status: 400 }
+    );
+  }
 
-    let result;
+  console.log(
+    `🌐 Triggering translation workflow for ${contentId}${targetLanguage ? ` (language: ${targetLanguage})` : ' (all languages)'}...`
+  );
 
+  try {
+    const inputs: Record<string, string> = { contentId };
     if (targetLanguage) {
-      // Translate to specific language
-      console.log(
-        `🌐 Translating content ${contentId} to ${targetLanguage}...`
-      );
-      result = await TranslationService.translate(contentId, targetLanguage);
-    } else {
-      // Translate to all supported languages
-      console.log(`🌐 Translating content ${contentId} to all languages...`);
-      result = await TranslationService.translateAll(contentId);
+      inputs.targetLanguage = targetLanguage;
     }
 
-    return {
+    const result = await GitHubWorkflowService.triggerWorkflow(
+      'pipeline-translate.yml',
+      inputs
+    );
+
+    return NextResponse.json({
       success: true,
+      workflowTriggered: true,
+      workflow: 'pipeline-translate.yml',
+      message: 'Translation workflow started in background.',
       data: result,
-      message: `Translation completed for ${contentId}`,
-    };
-  }, 'Translation failed');
+    });
+  } catch (error) {
+    console.error('Failed to trigger translation workflow:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to trigger translation workflow',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
 }
 
 /**
@@ -50,13 +63,24 @@ export async function POST(request: NextRequest) {
  * Get list of content needing translation
  */
 export async function GET(request: NextRequest) {
-  return handleApiRoute(async () => {
-    const content = await TranslationService.getContentNeedingTranslation();
+  try {
+    const { ContentManager } = await import('@/lib/ContentManager');
+    const content = await ContentManager.getSourceByStatus('reviewed');
 
-    return {
+    return NextResponse.json({
       success: true,
       data: content,
       count: content.length,
-    };
-  }, 'Failed to get content needing translation');
+    });
+  } catch (error) {
+    console.error('Failed to get content needing translation:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to get content needing translation',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
 }
