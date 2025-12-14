@@ -1,5 +1,3 @@
-import fs from 'fs/promises';
-import path from 'path';
 import {
   ContentItem,
   ContentReviewFeedback,
@@ -9,45 +7,46 @@ import {
   StreamingUrls,
 } from '@/types/content';
 import { ContentSchema } from './ContentSchema';
+import { getSupabaseAdmin } from './supabase';
 
+/**
+ * ContentManager - Manages content operations using Supabase as primary storage
+ *
+ * Migrated from filesystem-based storage to Supabase database.
+ * All content is stored in review_web.content table with composite key (id, language).
+ */
 export class ContentManager {
-  // Point to the FromFedToChain content directory
-  // This will be configured via environment variable or symlink
+  // Legacy: Content directory path (optional, for local development)
   static CONTENT_DIR =
-    process.env.CONTENT_DIR ||
-    path.join(process.cwd(), '..', 'FromFedToChain', 'content');
+    process.env.CONTENT_DIR || process.cwd() + '/../FromFedToChain/content';
 
-  // Read content from specific language
-  static async _readFromLanguage(
+  /**
+   * Read content by ID and language from Supabase
+   */
+  private static async _readFromSupabase(
     id: string,
     language: string
   ): Promise<ContentItem> {
-    const categories = ContentSchema.getCategories();
+    const { data, error } = await getSupabaseAdmin()
+      .from('content')
+      .select('*')
+      .eq('id', id)
+      .eq('language', language)
+      .single();
 
-    for (const category of categories) {
-      const filePath = path.join(
-        this.CONTENT_DIR,
-        language,
-        category,
-        `${id}.json`
-      );
-      try {
-        const content = await fs.readFile(filePath, 'utf-8');
-        const parsed: ContentItem = JSON.parse(content);
-        return parsed;
-      } catch (error) {
-        // Continue searching in other categories
-        continue;
-      }
+    if (error || !data) {
+      throw new Error(`Content not found in ${language}: ${id}`);
     }
 
-    throw new Error(`Content not found in ${language}: ${id}`);
+    return data as ContentItem;
   }
 
-  // Read content by ID (searches across all language/category folders)
+  /**
+   * Read content by ID (searches across all languages if not specified)
+   */
   static async read(id: string, language?: string): Promise<ContentItem> {
     if (language) {
-      return this._readFromLanguage(id, language);
+      return this._readFromSupabase(id, language);
     }
 
     // Search all languages for the content
@@ -55,7 +54,7 @@ export class ContentManager {
 
     for (const lang of languages) {
       try {
-        return await this._readFromLanguage(id, lang);
+        return await this._readFromSupabase(id, lang);
       } catch (error) {
         // Continue searching in other languages
         continue;
@@ -65,7 +64,9 @@ export class ContentManager {
     throw new Error(`Content not found: ${id}`);
   }
 
-  // Create a new content file for a given language
+  /**
+   * Create new content in Supabase
+   */
   static async create(
     id: string,
     category: Category,
@@ -87,19 +88,29 @@ export class ContentManager {
 
     ContentSchema.validate(contentData);
 
-    const dir = path.join(this.CONTENT_DIR, language, category);
-    await fs.mkdir(dir, { recursive: true });
-    const filePath = path.join(dir, `${id}.json`);
-    await fs.writeFile(filePath, JSON.stringify(contentData, null, 2));
+    const { data, error } = await getSupabaseAdmin()
+      .from('content')
+      .insert(contentData)
+      .select()
+      .single();
 
-    return contentData;
+    if (error) {
+      throw new Error(`Failed to create content: ${error.message}`);
+    }
+
+    return data as ContentItem;
   }
 
-  // Read source content specifically (zh-TW)
+  /**
+   * Read source content specifically (zh-TW)
+   */
   static async readSource(id: string): Promise<ContentItem> {
     return this.read(id, 'zh-TW');
   }
 
+  /**
+   * Create source content (zh-TW)
+   */
   static async createSource(
     id: string,
     category: Category,
@@ -119,55 +130,45 @@ export class ContentManager {
     );
   }
 
-  // List all content with optional status filter
+  /**
+   * List all content with optional status and language filters
+   */
   static async list(
     status?: Status | null,
     language?: string | null
   ): Promise<ContentItem[]> {
-    const contents: ContentItem[] = [];
-    const languages = language ? [language] : ContentSchema.getAllLanguages();
-    const categories = ContentSchema.getCategories();
+    let query = getSupabaseAdmin()
+      .from('content')
+      .select('*')
+      .order('date', { ascending: false });
 
-    for (const lang of languages) {
-      for (const category of categories) {
-        const categoryDir = path.join(this.CONTENT_DIR, lang, category);
-
-        try {
-          const files = await fs.readdir(categoryDir);
-          const contentFiles = files.filter((f) => f.endsWith('.json'));
-
-          for (const file of contentFiles) {
-            try {
-              const id = path.basename(file, '.json');
-              const content = await this._readFromLanguage(id, lang);
-
-              if (!status || content.status === status) {
-                contents.push(content);
-              }
-            } catch (e) {
-              // Skip invalid files
-              console.warn(
-                `⚠️ Skipping invalid file: ${lang}/${category}/${file}`
-              );
-            }
-          }
-        } catch (error) {
-          // Category directory doesn't exist - skip
-        }
-      }
+    if (status) {
+      query = query.eq('status', status);
     }
 
-    // Sort by date descending
-    return contents.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    if (language) {
+      query = query.eq('language', language);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to list content: ${error.message}`);
+    }
+
+    return (data || []) as ContentItem[];
   }
 
+  /**
+   * Get source content by status
+   */
   static async getSourceByStatus(status: Status) {
     return this.list(status, 'zh-TW');
   }
 
-  // Get source content for review (excludes rejected content)
+  /**
+   * Get source content for review (excludes rejected content)
+   */
   static async getSourceForReview(): Promise<ContentItem[]> {
     const draftContent = await this.list('draft', 'zh-TW');
 
@@ -178,33 +179,40 @@ export class ContentManager {
     });
   }
 
-  // Update content
+  /**
+   * Update content in Supabase
+   */
   static async update(
     id: string,
     updates: Partial<ContentItem>,
     language?: string | null
   ): Promise<ContentItem> {
-    const content = await this.read(id, language || undefined);
+    // Read existing content to get language if not specified
+    const existing = await this.read(id, language || undefined);
 
-    const updatedContent: ContentItem = {
-      ...content,
+    const updatedContent: Partial<ContentItem> = {
       ...updates,
       updated_at: new Date().toISOString(),
     };
 
-    // Find the correct file path
-    const filePath = path.join(
-      this.CONTENT_DIR,
-      content.language,
-      content.category,
-      `${id}.json`
-    );
-    await fs.writeFile(filePath, JSON.stringify(updatedContent, null, 2));
+    const { data, error } = await getSupabaseAdmin()
+      .from('content')
+      .update(updatedContent)
+      .eq('id', id)
+      .eq('language', existing.language)
+      .select()
+      .single();
 
-    return updatedContent;
+    if (error) {
+      throw new Error(`Failed to update content: ${error.message}`);
+    }
+
+    return data as ContentItem;
   }
 
-  // Update source content status specifically
+  /**
+   * Update source content status
+   */
   static async updateSourceStatus(
     id: string,
     status: Status
@@ -212,11 +220,16 @@ export class ContentManager {
     return this.update(id, { status }, 'zh-TW');
   }
 
+  /**
+   * Update content status
+   */
   static async updateStatus(id: string, status: Status) {
     return this.update(id, { status });
   }
 
-  // Update category for source content
+  /**
+   * Update category for source content
+   */
   static async updateSourceCategory(
     id: string,
     category: Category
@@ -230,36 +243,13 @@ export class ContentManager {
       return content;
     }
 
-    // Update the content object
-    const updatedContent: ContentItem = {
-      ...content,
-      category,
-      updated_at: new Date().toISOString(),
-    };
-
-    // Write to new location
-    const newDir = path.join(this.CONTENT_DIR, 'zh-TW', category);
-    await fs.mkdir(newDir, { recursive: true });
-    const newFilePath = path.join(newDir, `${id}.json`);
-    await fs.writeFile(newFilePath, JSON.stringify(updatedContent, null, 2));
-
-    // Delete old file
-    const oldFilePath = path.join(
-      this.CONTENT_DIR,
-      'zh-TW',
-      oldCategory,
-      `${id}.json`
-    );
-    try {
-      await fs.unlink(oldFilePath);
-    } catch (error) {
-      console.warn(`Warning: Could not delete old file: ${oldFilePath}`);
-    }
-
-    return updatedContent;
+    // Update the category in Supabase
+    return this.update(id, { category }, 'zh-TW');
   }
 
-  // Add feedback for content review
+  /**
+   * Add feedback for content review
+   */
   static async addContentFeedback(
     id: string,
     status: 'accepted' | 'rejected',
@@ -274,14 +264,7 @@ export class ContentManager {
 
     const contentData = await this.read(id, 'zh-TW');
 
-    // Initialize feedback structure if missing
-    if (!contentData.feedback) {
-      contentData.feedback = {
-        content_review: null,
-      };
-    }
-
-    // Add or update review feedback
+    // Build review feedback
     const feedbackData: ContentReviewFeedback = {
       status,
       score,
@@ -290,26 +273,25 @@ export class ContentManager {
       comments: comments || 'Approved for translation',
     };
 
-    contentData.feedback.content_review = feedbackData;
-    contentData.updated_at = new Date().toISOString();
+    // Update feedback in content
+    const updatedFeedback = {
+      ...contentData.feedback,
+      content_review: feedbackData,
+    };
 
-    // Write updated content
-    const filePath = path.join(
-      this.CONTENT_DIR,
-      contentData.language,
-      contentData.category,
-      `${id}.json`
-    );
-    await fs.writeFile(filePath, JSON.stringify(contentData, null, 2));
-
-    return contentData;
+    return this.update(id, { feedback: updatedFeedback }, 'zh-TW');
   }
 
-  // Get content by status
+  /**
+   * Get content by status
+   */
   static async getByStatus(status: Status): Promise<ContentItem[]> {
     return this.list(status);
   }
 
+  /**
+   * Add translation for content
+   */
   static async addTranslation(
     id: string,
     targetLanguage: Language,
@@ -319,6 +301,7 @@ export class ContentManager {
     knowledgeConcepts: string[] = []
   ) {
     const sourceContent = await this.read(id, 'zh-TW');
+
     const translation = ContentSchema.createContent(
       id,
       sourceContent.category,
@@ -328,25 +311,28 @@ export class ContentManager {
       sourceContent.references,
       framework
     );
+
     translation.status = 'translated';
     if (knowledgeConcepts.length) {
       translation.knowledge_concepts_used = knowledgeConcepts;
     }
 
-    const dir = path.join(
-      this.CONTENT_DIR,
-      targetLanguage,
-      sourceContent.category
-    );
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(
-      path.join(dir, `${id}.json`),
-      JSON.stringify(translation, null, 2)
-    );
+    const { data, error } = await getSupabaseAdmin()
+      .from('content')
+      .insert(translation)
+      .select()
+      .single();
 
-    return translation;
+    if (error) {
+      throw new Error(`Failed to add translation: ${error.message}`);
+    }
+
+    return data as ContentItem;
   }
 
+  /**
+   * Add audio file reference to content
+   */
   static async addAudio(
     id: string,
     language: Language,
@@ -360,52 +346,58 @@ export class ContentManager {
     return this.update(id, updates, language);
   }
 
+  /**
+   * Add social hook to content
+   */
   static async addSocialHook(id: string, language: string, hook: string) {
     return this.update(id, { social_hook: hook }, language);
   }
 
+  /**
+   * Get all language versions for a content ID
+   */
   static async getAllLanguagesForId(id: string) {
-    const allContent: ContentItem[] = [];
-    for (const lang of ContentSchema.getAllLanguages()) {
-      try {
-        const content = await this.read(id, lang);
-        allContent.push(content);
-      } catch (error) {
-        // language missing - skip
-      }
+    const { data, error } = await getSupabaseAdmin()
+      .from('content')
+      .select('*')
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to get languages for content: ${error.message}`);
     }
-    return allContent;
+
+    return (data || []) as ContentItem[];
   }
 
-  static async getAvailableLanguages(id: string) {
-    const languages: string[] = [];
-    for (const lang of ContentSchema.getAllLanguages()) {
-      try {
-        await this.read(id, lang);
-        languages.push(lang);
-      } catch (error) {
-        // skip missing language
-      }
-    }
-    return languages;
+  /**
+   * Get available languages for a content ID
+   */
+  static async getAvailableLanguages(id: string): Promise<string[]> {
+    const allVersions = await this.getAllLanguagesForId(id);
+    return allVersions.map((content) => content.language);
   }
 
-  // Get review history (content with feedback)
+  /**
+   * Get review history (content with feedback)
+   */
   static async getReviewHistory(limit?: number): Promise<ContentItem[]> {
-    const allContent = await this.list(null, 'zh-TW');
+    let query = getSupabaseAdmin()
+      .from('content')
+      .select('*')
+      .eq('language', 'zh-TW')
+      .not('feedback->content_review', 'is', null)
+      .order('feedback->content_review->timestamp', { ascending: false });
 
-    // Filter to only content with review feedback
-    const reviewed = allContent.filter(
-      (content) => content.feedback?.content_review !== null
-    );
+    if (limit) {
+      query = query.limit(limit);
+    }
 
-    // Sort by review timestamp descending
-    const sorted = reviewed.sort((a, b) => {
-      const aTime = a.feedback?.content_review?.timestamp || '';
-      const bTime = b.feedback?.content_review?.timestamp || '';
-      return new Date(bTime).getTime() - new Date(aTime).getTime();
-    });
+    const { data, error } = await query;
 
-    return limit ? sorted.slice(0, limit) : sorted;
+    if (error) {
+      throw new Error(`Failed to get review history: ${error.message}`);
+    }
+
+    return (data || []) as ContentItem[];
   }
 }

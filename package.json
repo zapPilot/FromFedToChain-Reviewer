@@ -17,7 +17,8 @@
     "test:node": "vitest run --passWithNoTests",
     "test:node:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
-    "precommit:test": "npm run type-check && npm run test:node"
+    "precommit:test": "npm run type-check && npm run test:node",
+    "migrate:content": "tsx scripts/migrate-content-to-supabase.ts"
   },
   "description": "Web-based review interface for FromFedToChain content",
   "dependencies": {
@@ -50,6 +51,7 @@
     "husky": "^9.0.11",
     "lint-staged": "^15.2.9",
     "prettier": "^3.6.2",
+    "tsx": "^4.21.0",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4"
   },
