@@ -32,6 +32,12 @@ export async function GET(request: NextRequest) {
     // Filter out rejected content
     content = content.filter((c) => !rejectedIds.has(c.id));
 
+    // Filter out accepted items (that are still in draft)
+    content = content.filter((c) => {
+      const reviewStatus = c.feedback?.content_review?.status;
+      return reviewStatus !== 'accepted';
+    });
+
     // Apply category filter
     if (category) {
       content = content.filter((c) => c.category === category);

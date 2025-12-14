@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GitHubWorkflowService } from '@/lib/services/GitHubWorkflowService';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { ContentManager } from '@/lib/ContentManager';
 
 interface WorkflowTriggerResult {
   contentId: string;
@@ -15,16 +15,8 @@ interface WorkflowTriggerResult {
  */
 export async function POST() {
   try {
-    // Query Supabase for content needing pipeline processing
-    const { data: pending, error } = await getSupabaseAdmin()
-      .from('content')
-      .select('id, status')
-      .in('status', ['approved', 'in_progress'])
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw new Error(`Failed to fetch pending content: ${error.message}`);
-    }
+    // Get pending content using shared logic
+    const pending = await ContentManager.getPendingPipelineItems();
 
     if (!pending || pending.length === 0) {
       return NextResponse.json({

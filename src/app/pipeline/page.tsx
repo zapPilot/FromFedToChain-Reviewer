@@ -13,11 +13,42 @@ interface WorkflowTriggerResult {
   error?: string;
 }
 
+interface QueueItem {
+  id: string;
+  title: string;
+  status: string;
+  category: string;
+  reviewStatus?: string;
+  reviewer?: string;
+}
+
 export default function PipelineHubPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [results, setResults] = useState<WorkflowTriggerResult[]>([]);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [loadingQueue, setLoadingQueue] = useState(true);
+
+  // Fetch queue on mount
+  useState(() => {
+    fetchQueue();
+  });
+
+  async function fetchQueue() {
+    try {
+      setLoadingQueue(true);
+      const res = await fetch('/api/pipeline/queue', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) {
+        setQueue(data.queue || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch pipeline queue', e);
+    } finally {
+      setLoadingQueue(false);
+    }
+  }
 
   const triggerPipelineRun = async () => {
     const toastId = toast.loading('Triggering GitHub Actions workflows…');
@@ -40,6 +71,9 @@ export default function PipelineHubPage() {
         `Triggered workflows for ${data.successful || 0} content item(s)`;
       setMessage(successMessage);
       toast.success(successMessage, { id: toastId });
+
+      // Refresh queue after run
+      fetchQueue();
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to trigger workflows';
@@ -67,15 +101,60 @@ export default function PipelineHubPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Run All Approved Content</CardTitle>
+          <CardTitle>Pending Pipeline Work ({queue.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Queue List */}
+          <div className="rounded-md border border-gray-200 bg-white">
+            {loadingQueue ? (
+              <div className="p-4 text-center text-sm text-gray-500">
+                Loading queue...
+              </div>
+            ) : queue.length === 0 ? (
+              <div className="p-4 text-center text-sm text-gray-500">
+                No items pending pipeline execution.
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {queue.map((item) => (
+                  <li
+                    key={item.id}
+                    className="flex flex-col gap-1 p-3 text-sm hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900 truncate max-w-md">
+                        {item.title}
+                      </p>
+                      <p className="text-xs text-gray-500 font-mono">
+                        {item.id}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                      <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                        {item.category}
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                        {item.status === 'draft'
+                          ? 'Review Accepted'
+                          : item.status}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           <Button
             className="w-full"
             onClick={triggerPipelineRun}
-            disabled={isRunning}
+            disabled={isRunning || queue.length === 0}
           >
-            {isRunning ? 'Running pipeline…' : 'Process Pending Pipeline Work'}
+            {isRunning
+              ? 'Running pipeline…'
+              : queue.length > 0
+                ? `Process ${queue.length} Pending Item${queue.length === 1 ? '' : 's'}`
+                : 'No Pending Work'}
           </Button>
 
           {error && (
@@ -91,32 +170,24 @@ export default function PipelineHubPage() {
           )}
 
           {results.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-600">
-                Workflows triggered for {results.length} item
-                {results.length === 1 ? '' : 's'}:
+            <div className="space-y-3 pt-4 border-t border-gray-100">
+              <p className="text-sm font-medium text-gray-900">
+                Execution Results
               </p>
               <ul className="space-y-2">
                 {results.map((item) => (
                   <li
                     key={item.contentId}
-                    className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 md:flex-row md:items-center md:justify-between"
+                    className="flex flex-col gap-2 rounded-md border border-gray-200 p-3 md:flex-row md:items-center md:justify-between bg-gray-50"
                   >
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">
                         {item.contentId}
                       </p>
                       {item.success ? (
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-green-600">
                           ✓ Triggered {item.workflowsTriggered.length} workflow
-                          {item.workflowsTriggered.length === 1
-                            ? ''
-                            : 's'}:{' '}
-                          {item.workflowsTriggered
-                            .map((w) =>
-                              w.replace('pipeline-', '').replace('.yml', '')
-                            )
-                            .join(', ')}
+                          {item.workflowsTriggered.length === 1 ? '' : 's'}
                         </p>
                       ) : (
                         <p className="text-xs text-red-600">
@@ -129,7 +200,7 @@ export default function PipelineHubPage() {
                         href={`/pipeline/${item.contentId}`}
                         className="text-sm font-medium text-blue-600 hover:text-blue-700"
                       >
-                        Monitor progress →
+                        Monitor →
                       </Link>
                     )}
                   </li>

@@ -20,7 +20,7 @@ export type Status =
   | 'content'
   | 'social';
 
-export type ReviewStatus = 'accepted' | 'rejected';
+export type ReviewStatus = 'accepted' | 'rejected' | 'pending';
 
 export interface ContentReviewFeedback {
   status: ReviewStatus;

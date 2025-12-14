@@ -67,6 +67,28 @@ export async function POST(
       throw new ApiError('Failed to save review status', 500);
     }
 
+    // NEW: Update content table feedback to maintain single source of truth
+    const { error: contentError } = await getSupabaseAdmin()
+      .from('content')
+      .update({
+        feedback: {
+          ...content.feedback, // Keep existing feedback
+          content_review: {
+            status: reviewStatus,
+            comments: feedback || '',
+            reviewer: reviewer,
+            timestamp: new Date().toISOString(),
+          },
+        },
+      } as any) // Type casting to bypass strict typing for now if needed, though typically prefer typed
+      .eq('id', content.id);
+
+    if (contentError) {
+      console.error('Failed to update content table:', contentError);
+      // We don't throw here to avoid failing the whole request if status table worked,
+      // but in a real txn we would rollback. For now, just log.
+    }
+
     // Return the content (unchanged from Git)
     const response: ReviewSubmitResponse = {
       success: true,

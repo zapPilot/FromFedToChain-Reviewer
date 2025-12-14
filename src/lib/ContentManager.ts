@@ -137,10 +137,7 @@ export class ContentManager {
     status?: Status | null,
     language?: string | null
   ): Promise<ContentItem[]> {
-    let query = getSupabaseAdmin()
-      .from('content')
-      .select('*')
-      .order('date', { ascending: false });
+    let query = getSupabaseAdmin().from('content').select('*');
 
     if (status) {
       query = query.eq('status', status);
@@ -150,7 +147,7 @@ export class ContentManager {
       query = query.eq('language', language);
     }
 
-    const { data, error } = await query;
+    const { data, error } = await query.order('date', { ascending: false });
 
     if (error) {
       throw new Error(`Failed to list content: ${error.message}`);
@@ -172,10 +169,21 @@ export class ContentManager {
   static async getSourceForReview(): Promise<ContentItem[]> {
     const draftContent = await this.list('draft', 'zh-TW');
 
-    // Filter out content that has been rejected
+    // Filter out content that has been reviewed (accepted or rejected)
     return draftContent.filter((content) => {
       const review = content.feedback?.content_review;
-      return !review || review.status !== 'rejected';
+
+      // If no review exists, it needs review
+      if (!review) return true;
+
+      // If review status is pending, it needs review
+      if (review.status === 'pending') return true;
+
+      // If accepted or rejected, it does NOT need review
+      if (review.status === 'accepted' || review.status === 'rejected')
+        return false;
+
+      return true;
     });
   }
 
@@ -399,5 +407,35 @@ export class ContentManager {
     }
 
     return (data || []) as ContentItem[];
+  }
+
+  /**
+   * Get content items pending pipeline processing
+   * Criteria:
+   * 1. Status is 'approved' or 'in_progress'
+   * 2. OR Status is 'draft' with feedback.content_review.status === 'accepted'
+   */
+  static async getPendingPipelineItems(): Promise<ContentItem[]> {
+    const { data: rawContent, error } = await getSupabaseAdmin()
+      .from('content')
+      .select('*')
+      .in('status', ['approved', 'in_progress', 'draft'])
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch pending content: ${error.message}`);
+    }
+
+    return (
+      rawContent?.filter((item: any) => {
+        if (item.status === 'approved' || item.status === 'in_progress') {
+          return true;
+        }
+        if (item.status === 'draft') {
+          return item.feedback?.content_review?.status === 'accepted';
+        }
+        return false;
+      }) || []
+    );
   }
 }
