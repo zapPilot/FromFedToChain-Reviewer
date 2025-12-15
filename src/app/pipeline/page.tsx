@@ -41,7 +41,7 @@ export default function PipelineHubPage() {
       const res = await fetch('/api/pipeline/queue', { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
-        setQueue(data.queue || []);
+        setQueue(data.data?.queue || []);
       }
     } catch (e) {
       console.error('Failed to fetch pipeline queue', e);
@@ -136,7 +136,9 @@ export default function PipelineHubPage() {
                       <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                         {item.status === 'draft'
                           ? 'Review Accepted'
-                          : item.status}
+                          : item.status === 'reviewed'
+                            ? 'Reviewed'
+                            : item.status}
                       </span>
                     </div>
                   </li>

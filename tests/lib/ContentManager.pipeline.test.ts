@@ -108,6 +108,44 @@ describe('ContentManager Pipeline Logic', () => {
       expect(result).toHaveLength(2);
       expect(result.map((i) => i.id)).toEqual(['ok-1', 'ok-2']);
     });
+
+    it('should return items with reviewed status', async () => {
+      const mockData = [
+        { id: 'reviewed-1', status: 'reviewed' },
+        { id: 'reviewed-2', status: 'reviewed' },
+      ];
+      mockBuilder.order.mockResolvedValue({ data: mockData, error: null });
+
+      const result = await ContentManager.getPendingPipelineItems();
+      expect(result).toHaveLength(2);
+      expect(result.map((i) => i.id)).toEqual(['reviewed-1', 'reviewed-2']);
+    });
+
+    it('should return mixed reviewed, approved, and draft items', async () => {
+      const mockData = [
+        { id: 'reviewed-1', status: 'reviewed' },
+        { id: 'approved-1', status: 'approved' },
+        {
+          id: 'draft-accepted',
+          status: 'draft',
+          feedback: { content_review: { status: 'accepted' } },
+        },
+        {
+          id: 'draft-rejected',
+          status: 'draft',
+          feedback: { content_review: { status: 'rejected' } },
+        },
+      ];
+      mockBuilder.order.mockResolvedValue({ data: mockData, error: null });
+
+      const result = await ContentManager.getPendingPipelineItems();
+      expect(result).toHaveLength(3);
+      expect(result.map((i) => i.id)).toEqual([
+        'reviewed-1',
+        'approved-1',
+        'draft-accepted',
+      ]);
+    });
   });
 
   describe('getSourceForReview', () => {

@@ -412,14 +412,15 @@ export class ContentManager {
   /**
    * Get content items pending pipeline processing
    * Criteria:
-   * 1. Status is 'approved' or 'in_progress'
-   * 2. OR Status is 'draft' with feedback.content_review.status === 'accepted'
+   * 1. Status is 'reviewed' (content accepted during review)
+   * 2. Status is 'approved' or 'in_progress' (legacy statuses)
+   * 3. OR Status is 'draft' with feedback.content_review.status === 'accepted'
    */
   static async getPendingPipelineItems(): Promise<ContentItem[]> {
     const { data: rawContent, error } = await getSupabaseAdmin()
       .from('content')
       .select('*')
-      .in('status', ['approved', 'in_progress', 'draft'])
+      .in('status', ['reviewed', 'approved', 'in_progress', 'draft'])
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -428,7 +429,11 @@ export class ContentManager {
 
     return (
       rawContent?.filter((item: any) => {
-        if (item.status === 'approved' || item.status === 'in_progress') {
+        if (
+          item.status === 'reviewed' ||
+          item.status === 'approved' ||
+          item.status === 'in_progress'
+        ) {
           return true;
         }
         if (item.status === 'draft') {
