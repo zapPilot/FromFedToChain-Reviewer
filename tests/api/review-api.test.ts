@@ -29,6 +29,11 @@ describe('Review API Routes', () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
       upsert: vi.fn().mockResolvedValue({ error: null }),
     };
 
@@ -59,7 +64,7 @@ describe('Review API Routes', () => {
       await TestUtils.writeContentFile(tempDir, content2);
 
       // Mock Supabase to return no rejected content
-      mockSupabase.eq.mockResolvedValue({
+      mockSupabase.order.mockResolvedValue({
         data: [],
         error: null,
       });
@@ -96,10 +101,26 @@ describe('Review API Routes', () => {
       await TestUtils.writeContentFile(tempDir, content1);
       await TestUtils.writeContentFile(tempDir, content2);
 
-      // Mock Supabase to return one rejected content
-      mockSupabase.eq.mockResolvedValue({
-        data: [{ id: 'test-2', review_status: 'rejected' }],
-        error: null,
+      // Mock two different Supabase queries:
+      // 1. ContentManager.list returns both items
+      // 2. content_status query returns test-2 as rejected
+      let callCount = 0;
+      mockSupabase.from.mockImplementation((table: string) => {
+        callCount++;
+        if (callCount === 1 || table === 'content') {
+          // First call: return draft content
+          mockSupabase.order.mockResolvedValue({
+            data: [content1, content2],
+            error: null,
+          });
+        } else {
+          // Second call (content_status): return rejected items
+          mockSupabase.eq.mockResolvedValue({
+            data: [{ id: 'test-2', review_status: 'rejected' }],
+            error: null,
+          });
+        }
+        return mockSupabase;
       });
 
       const request = new NextRequest(
@@ -125,7 +146,7 @@ describe('Review API Routes', () => {
       }
       await TestUtils.seedContentSet(tempDir, contents);
 
-      mockSupabase.eq.mockResolvedValue({ data: [], error: null });
+      mockSupabase.order.mockResolvedValue({ data: contents, error: null });
 
       const request = new NextRequest(
         'http://localhost:3000/api/review/pending?page=1&limit=2'
@@ -155,7 +176,10 @@ describe('Review API Routes', () => {
       await TestUtils.writeContentFile(tempDir, content1);
       await TestUtils.writeContentFile(tempDir, content2);
 
-      mockSupabase.eq.mockResolvedValue({ data: [], error: null });
+      mockSupabase.order.mockResolvedValue({
+        data: [content1, content2],
+        error: null,
+      });
 
       const request = new NextRequest(
         'http://localhost:3000/api/review/pending?category=daily-news'
@@ -197,6 +221,9 @@ describe('Review API Routes', () => {
         status: 'draft',
       });
       await TestUtils.writeContentFile(tempDir, content);
+
+      // Mock Supabase to return the test content
+      mockSupabase.single.mockResolvedValue({ data: content, error: null });
 
       const request = new NextRequest(
         'http://localhost:3000/api/review/test-1'
@@ -248,7 +275,7 @@ describe('Review API Routes', () => {
       await TestUtils.writeContentFile(tempDir, content2);
 
       // Mock Supabase status records
-      mockSupabase.select.mockResolvedValue({
+      mockSupabase.order.mockResolvedValue({
         data: [
           { id: 'test-1', review_status: 'accepted', category: 'daily-news' },
         ],
@@ -276,6 +303,9 @@ describe('Review API Routes', () => {
         status: 'draft',
       });
       await TestUtils.writeContentFile(tempDir, content);
+
+      // Mock Supabase to return the test content
+      mockSupabase.single.mockResolvedValue({ data: content, error: null });
 
       const request = new NextRequest(
         'http://localhost:3000/api/review/test-1/submit',

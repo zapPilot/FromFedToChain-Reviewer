@@ -39,6 +39,11 @@ describe('Review API Integration - Client to Route', () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
       upsert: vi.fn().mockResolvedValue({ error: null }),
     };
     vi.mocked(getSupabaseAdmin).mockReturnValue(mockSupabase);
@@ -72,8 +77,11 @@ describe('Review API Integration - Client to Route', () => {
       await TestUtils.writeContentFile(tempDir, content1);
       await TestUtils.writeContentFile(tempDir, content2);
 
-      // Mock Supabase
-      mockSupabase.eq.mockResolvedValue({ data: [], error: null });
+      // Mock Supabase to return the test content
+      mockSupabase.order.mockResolvedValue({
+        data: [content1, content2],
+        error: null,
+      });
 
       // Mock fetch to call actual route handler
       vi.mocked(global.fetch).mockImplementation(async (url) => {
@@ -133,7 +141,7 @@ describe('Review API Integration - Client to Route', () => {
       }
       await TestUtils.seedContentSet(tempDir, contents);
 
-      mockSupabase.eq.mockResolvedValue({ data: [], error: null });
+      mockSupabase.order.mockResolvedValue({ data: contents, error: null });
 
       vi.mocked(global.fetch).mockImplementation(async (url) => {
         if (typeof url === 'string' && url.includes('/api/review/pending')) {
@@ -184,10 +192,26 @@ describe('Review API Integration - Client to Route', () => {
       await TestUtils.writeContentFile(tempDir, content1);
       await TestUtils.writeContentFile(tempDir, content2);
 
-      // Mock Supabase to return one rejected item
-      mockSupabase.eq.mockResolvedValue({
-        data: [{ id: 'rejected-test', review_status: 'rejected' }],
-        error: null,
+      // Mock Supabase calls:
+      // 1. First call: ContentManager.list returns both items
+      // 2. Second call: content_status query returns rejected-test as rejected
+      let callCount = 0;
+      mockSupabase.from.mockImplementation((table: string) => {
+        callCount++;
+        if (callCount === 1 || table === 'content') {
+          // First call or explicit content table: return draft content
+          mockSupabase.order.mockResolvedValue({
+            data: [content1, content2],
+            error: null,
+          });
+        } else {
+          // Second call (content_status table): return rejected items
+          mockSupabase.eq.mockResolvedValue({
+            data: [{ id: 'rejected-test', review_status: 'rejected' }],
+            error: null,
+          });
+        }
+        return mockSupabase;
       });
 
       vi.mocked(global.fetch).mockImplementation(async (url) => {
@@ -240,6 +264,9 @@ describe('Review API Integration - Client to Route', () => {
 
       await TestUtils.writeContentFile(tempDir, content1);
       await TestUtils.writeContentFile(tempDir, content2);
+
+      // Mock Supabase to return the test content
+      mockSupabase.single.mockResolvedValue({ data: content1, error: null });
 
       vi.mocked(global.fetch).mockImplementation(async (url) => {
         if (
@@ -338,33 +365,25 @@ describe('Review API Integration - Client to Route', () => {
       await TestUtils.writeContentFile(tempDir, content1);
       await TestUtils.writeContentFile(tempDir, content2);
 
-      // Mock Supabase status records
-      mockSupabase.select.mockResolvedValue({
-        data: [
-          {
-            id: 'stats-test-1',
-            review_status: 'accepted',
-            category: 'daily-news',
-          },
-        ],
+      // Set feedback on content1 to make it reviewed
+      content1.feedback = {
+        content_review: {
+          status: 'accepted',
+          score: 5,
+          reviewer: 'test-reviewer',
+          timestamp: new Date().toISOString(),
+          comments: 'Good content',
+        },
+      };
+
+      // Mock Supabase to return both content items
+      mockSupabase.order.mockResolvedValue({
+        data: [content1, content2],
         error: null,
       });
 
       vi.mocked(global.fetch).mockImplementation(async (url) => {
         if (typeof url === 'string' && url.includes('/api/review/stats')) {
-          // Stats endpoint uses .from().select() (no .eq())
-          // Reset the mock chain
-          mockSupabase.from.mockReturnValue(mockSupabase);
-          mockSupabase.select.mockResolvedValue({
-            data: [
-              {
-                id: 'stats-test-1',
-                review_status: 'accepted',
-                category: 'daily-news',
-              },
-            ],
-            error: null,
-          });
           const response = await getStats();
           return {
             ok: response.ok,
@@ -415,7 +434,8 @@ describe('Review API Integration - Client to Route', () => {
       // Setup mock chain for all endpoints
       mockSupabase.from.mockReturnValue(mockSupabase);
       mockSupabase.select.mockReturnValue(mockSupabase);
-      mockSupabase.eq.mockResolvedValue({ data: [], error: null });
+      mockSupabase.order.mockResolvedValue({ data: [content], error: null });
+      mockSupabase.single.mockResolvedValue({ data: content, error: null });
 
       // Test all endpoints return standardized format
       const endpoints = [
