@@ -40,53 +40,28 @@ export async function POST(
     // Use newCategory if provided, otherwise keep current category
     const finalCategory = newCategory || content.category;
 
-    // Upsert status record in Supabase
-    const { error } = await getSupabaseAdmin()
-      .from('content_status')
-      .upsert(
-        {
-          id: content.id,
-          category: finalCategory,
-          language: content.language,
-          title: content.title,
-          status: contentStatus,
-          reviewer,
-          review_status: reviewStatus,
-          review_score: score,
-          review_feedback: feedback || 'Approved for translation',
-          review_timestamp: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'id',
-        }
-      );
-
-    if (error) {
-      console.error('Supabase error:', error);
-      throw new ApiError('Failed to save review status', 500);
-    }
-
-    // NEW: Update content table feedback to maintain single source of truth
+    // Single write to content table only (content_status table deprecated in migration 005)
     const { error: contentError } = await getSupabaseAdmin()
       .from('content')
       .update({
+        category: finalCategory, // Update category if changed
         feedback: {
           ...content.feedback, // Keep existing feedback
           content_review: {
             status: reviewStatus,
-            comments: feedback || '',
+            score: score,
             reviewer: reviewer,
             timestamp: new Date().toISOString(),
+            comments: feedback || 'Approved for translation',
           },
         },
-      } as any) // Type casting to bypass strict typing for now if needed, though typically prefer typed
-      .eq('id', content.id);
+      } as any)
+      .eq('id', content.id)
+      .eq('language', 'zh-TW'); // Only update source language (zh-TW)
 
     if (contentError) {
-      console.error('Failed to update content table:', contentError);
-      // We don't throw here to avoid failing the whole request if status table worked,
-      // but in a real txn we would rollback. For now, just log.
+      console.error('Failed to update content:', contentError);
+      throw new ApiError('Failed to save review status', 500);
     }
 
     // Return the content (unchanged from Git)

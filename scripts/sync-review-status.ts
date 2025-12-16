@@ -1,6 +1,32 @@
+/*
+ * DEPRECATED: This script is no longer needed after migration 005_consolidate_content_status.sql
+ *
+ * Previous Purpose:
+ * - Synced review decisions from content_status table to content.feedback field
+ * - Handled one-way data migration for legacy data
+ *
+ * Why Deprecated:
+ * - content_status table has been dropped (migration 005)
+ * - All review data now lives in content.feedback.content_review
+ * - Migration script handles one-time data transfer
+ * - Application code now writes directly to content table only
+ *
+ * DO NOT USE THIS SCRIPT - it will fail because content_status table no longer exists
+ *
+ * Date Deprecated: 2025-12-16
+ * Related Migration: database/migrations/005_consolidate_content_status.sql
+ */
+
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
+
+console.error('ERROR: This script is deprecated and should not be used.');
+console.error('The content_status table no longer exists after migration 005.');
+console.error(
+  'All review data is now stored in content.feedback.content_review.'
+);
+process.exit(1);
 
 // Load env vars manually
 const envPath = path.resolve(process.cwd(), '.env.local');

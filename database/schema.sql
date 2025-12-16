@@ -7,45 +7,14 @@ CREATE SCHEMA IF NOT EXISTS review_web;
 -- Set search path for this session
 SET search_path TO review_web, public;
 
--- Content processing status and review feedback
-CREATE TABLE review_web.content_status (
-  -- Primary key (matches JSON filename, e.g., "content-123")
-  id TEXT PRIMARY KEY,
-
-  -- Content metadata
-  category TEXT NOT NULL,
-  language TEXT NOT NULL DEFAULT 'zh-TW',
-  title TEXT,
-
-  -- Review state
-  status TEXT NOT NULL DEFAULT 'draft',
-  reviewer TEXT,
-  review_status TEXT,                    -- 'accepted' or 'rejected'
-  review_score INTEGER,
-  review_feedback TEXT,
-  review_timestamp TIMESTAMPTZ,
-
-  -- Pipeline progress tracking
-  translation_status TEXT,               -- 'pending', 'processing', 'completed', 'failed'
-  translation_completed_at TIMESTAMPTZ,
-
-  audio_status TEXT,
-  audio_url TEXT,
-  audio_completed_at TIMESTAMPTZ,
-
-  cloudflare_status TEXT,
-  streaming_urls JSONB,                  -- {m3u8: string, cloudflare: string, segments: string[]}
-  cloudflare_completed_at TIMESTAMPTZ,
-
-  -- Timestamps
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- DEPRECATED: content_status table has been consolidated into content table (migration 005)
+-- Review data is now stored in content.feedback JSONB field
+-- Pipeline status is tracked in content.status field
 
 -- Pipeline job tracking (for monitoring and debugging)
 CREATE TABLE review_web.pipeline_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  content_id TEXT NOT NULL REFERENCES review_web.content_status(id) ON DELETE CASCADE,
+  content_id TEXT NOT NULL REFERENCES review_web.content(id) ON DELETE CASCADE,
 
   -- Job details
   job_type TEXT NOT NULL,                -- 'translate', 'audio', 'cloudflare'
@@ -65,10 +34,7 @@ CREATE TABLE review_web.pipeline_jobs (
 );
 
 -- Indexes for common queries
-CREATE INDEX idx_content_status_status ON review_web.content_status(status);
-CREATE INDEX idx_content_status_category ON review_web.content_status(category);
-CREATE INDEX idx_content_status_review_status ON review_web.content_status(review_status);
-CREATE INDEX idx_content_status_updated_at ON review_web.content_status(updated_at DESC);
+-- (content_status indexes removed - table deprecated in migration 005)
 
 CREATE INDEX idx_pipeline_jobs_content_id ON review_web.pipeline_jobs(content_id);
 CREATE INDEX idx_pipeline_jobs_status ON review_web.pipeline_jobs(status);
@@ -83,23 +49,13 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_content_status_updated_at
-  BEFORE UPDATE ON review_web.content_status
-  FOR EACH ROW
-  EXECUTE FUNCTION review_web.update_updated_at_column();
+-- Trigger for content_status removed (table deprecated in migration 005)
 
 -- Row Level Security (RLS) - Adjust based on your auth setup
-ALTER TABLE review_web.content_status ENABLE ROW LEVEL SECURITY;
+-- (content_status RLS removed - table deprecated in migration 005)
 ALTER TABLE review_web.pipeline_jobs ENABLE ROW LEVEL SECURITY;
 
 -- Allow service role full access (your Next.js API will use service role key)
-CREATE POLICY "Service role has full access to content_status"
-  ON review_web.content_status
-  FOR ALL
-  TO service_role
-  USING (true)
-  WITH CHECK (true);
-
 CREATE POLICY "Service role has full access to pipeline_jobs"
   ON review_web.pipeline_jobs
   FOR ALL

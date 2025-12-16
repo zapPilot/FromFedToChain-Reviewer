@@ -187,31 +187,25 @@ describe('Review API Integration - Client to Route', () => {
       const content2 = TestUtils.createContent({
         id: 'rejected-test',
         status: 'draft',
+        feedback: {
+          content_review: {
+            status: 'rejected',
+            score: 2,
+            reviewer: 'test-reviewer',
+            timestamp: new Date().toISOString(),
+            comments: 'Test rejection',
+          },
+        },
       });
 
       await TestUtils.writeContentFile(tempDir, content1);
       await TestUtils.writeContentFile(tempDir, content2);
 
-      // Mock Supabase calls:
-      // 1. First call: ContentManager.list returns both items
-      // 2. Second call: content_status query returns rejected-test as rejected
-      let callCount = 0;
-      mockSupabase.from.mockImplementation((table: string) => {
-        callCount++;
-        if (callCount === 1 || table === 'content') {
-          // First call or explicit content table: return draft content
-          mockSupabase.order.mockResolvedValue({
-            data: [content1, content2],
-            error: null,
-          });
-        } else {
-          // Second call (content_status table): return rejected items
-          mockSupabase.eq.mockResolvedValue({
-            data: [{ id: 'rejected-test', review_status: 'rejected' }],
-            error: null,
-          });
-        }
-        return mockSupabase;
+      // Mock ContentManager.list to return both items
+      // After migration 005, all review data is in content.feedback, no content_status query
+      mockSupabase.order.mockResolvedValue({
+        data: [content1, content2],
+        error: null,
       });
 
       vi.mocked(global.fetch).mockImplementation(async (url) => {

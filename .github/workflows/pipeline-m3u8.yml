@@ -85,14 +85,13 @@ jobs:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          curl -X POST "${SUPABASE_URL}/rest/v1/content_status" \
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.${{ inputs.contentId }}&language=eq.zh-TW" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
-            -H "Prefer: resolution=merge-duplicates" \
+            -H "Prefer: return=minimal" \
             -d '{
-              "id": "${{ inputs.contentId }}",
-              "pipeline_status": "m3u8_complete",
+              "status": "m3u8",
               "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
             }'
 
@@ -102,14 +101,13 @@ jobs:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          curl -X POST "${SUPABASE_URL}/rest/v1/content_status" \
+          echo "M3U8 conversion failed for ${{ inputs.contentId }}"
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.${{ inputs.contentId }}&language=eq.zh-TW" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
-            -H "Prefer: resolution=merge-duplicates" \
+            -H "Prefer: return=minimal" \
             -d '{
-              "id": "${{ inputs.contentId }}",
-              "pipeline_status": "failed",
-              "error_message": "M3U8 conversion failed",
+              "status": "wav",
               "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
             }'

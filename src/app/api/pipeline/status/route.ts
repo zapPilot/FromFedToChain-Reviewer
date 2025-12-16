@@ -12,13 +12,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Query content table (content_status deprecated in migration 005)
     const { data, error } = await getSupabaseAdmin()
-      .from('content_status')
-      .select('pipeline_status, error_message, updated_at')
+      .from('content')
+      .select('id, status, updated_at')
       .eq('id', contentId)
+      .eq('language', 'zh-TW')
       .single();
 
-    if (error) {
+    if (error || !data) {
       return NextResponse.json(
         { success: false, error: 'Content not found' },
         { status: 404 }
@@ -27,9 +29,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      contentId,
-      status: data.pipeline_status || 'unknown',
-      errorMessage: data.error_message,
+      contentId: data.id,
+      status: data.status, // Uses existing status field: draft→reviewed→translated→wav→m3u8→cloudflare→content→social
       lastUpdated: data.updated_at,
     });
   } catch (error) {

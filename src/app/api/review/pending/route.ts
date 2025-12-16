@@ -16,26 +16,11 @@ export async function GET(request: NextRequest) {
     // Get all draft content from Git
     let content = await ContentManager.list('draft', 'zh-TW');
 
-    // Get review status from Supabase to filter out rejected content
-    const { data: statusRecords, error } = await getSupabaseAdmin()
-      .from('content_status')
-      .select('id, review_status, review_feedback, reviewer, review_timestamp')
-      .eq('review_status', 'rejected');
-
-    if (error) {
-      console.error('Error fetching rejected status from Supabase:', error);
-    }
-
-    // Create a set of rejected content IDs
-    const rejectedIds = new Set(statusRecords?.map((r) => r.id) || []);
-
-    // Filter out rejected content
-    content = content.filter((c) => !rejectedIds.has(c.id));
-
-    // Filter out accepted items (that are still in draft)
+    // Filter out items with definitive review status (accepted or rejected)
+    // All review data is now in content.feedback, no separate query needed (content_status table deprecated in migration 005)
     content = content.filter((c) => {
       const reviewStatus = c.feedback?.content_review?.status;
-      return reviewStatus !== 'accepted';
+      return reviewStatus !== 'accepted' && reviewStatus !== 'rejected';
     });
 
     // Apply category filter

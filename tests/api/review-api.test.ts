@@ -96,31 +96,25 @@ describe('Review API Routes', () => {
       const content2 = TestUtils.createContent({
         id: 'test-2',
         status: 'draft',
+        feedback: {
+          content_review: {
+            status: 'rejected',
+            score: 2,
+            reviewer: 'test-reviewer',
+            timestamp: new Date().toISOString(),
+            comments: 'Test rejection',
+          },
+        },
       });
 
       await TestUtils.writeContentFile(tempDir, content1);
       await TestUtils.writeContentFile(tempDir, content2);
 
-      // Mock two different Supabase queries:
-      // 1. ContentManager.list returns both items
-      // 2. content_status query returns test-2 as rejected
-      let callCount = 0;
-      mockSupabase.from.mockImplementation((table: string) => {
-        callCount++;
-        if (callCount === 1 || table === 'content') {
-          // First call: return draft content
-          mockSupabase.order.mockResolvedValue({
-            data: [content1, content2],
-            error: null,
-          });
-        } else {
-          // Second call (content_status): return rejected items
-          mockSupabase.eq.mockResolvedValue({
-            data: [{ id: 'test-2', review_status: 'rejected' }],
-            error: null,
-          });
-        }
-        return mockSupabase;
+      // Mock ContentManager.list to return both items
+      // After migration 005, all review data is in content.feedback, no content_status query
+      mockSupabase.order.mockResolvedValue({
+        data: [content1, content2],
+        error: null,
       });
 
       const request = new NextRequest(
