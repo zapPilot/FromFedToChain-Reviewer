@@ -80,6 +80,12 @@ Before permanently removing old workflows, ensure:
 
 - [x] Unified workflow created with all 5 stages
 - [x] Run-all endpoint updated to trigger unified workflow
+- [x] Generate-audio endpoint updated to use unified workflow
+- [x] Upload endpoint updated to use unified workflow
+- [x] Unified workflow committed and pushed to main branch
+- [x] Old workflows removed from filesystem (archived)
+- [x] Better error handling added (404, 401, 403, 422)
+- [x] GitHub constants updated to reference unified workflow
 - [ ] Manual testing: Trigger workflow via GitHub UI
 - [ ] Automatic testing: Run via run-all API endpoint
 - [ ] Failure testing: Verify rollback works at each stage
