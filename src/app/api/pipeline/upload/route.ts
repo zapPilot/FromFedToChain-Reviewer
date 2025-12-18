@@ -40,17 +40,20 @@ export async function POST(request: NextRequest) {
   );
 
   try {
-    const inputs = { contentId, language, format };
+    // Use unified workflow starting at cloudflare stage
+    const workflow = 'pipeline-unified.yml';
+    const inputs = { contentId, language, format, start_stage: 'cloudflare' };
 
     const result = await GitHubWorkflowService.triggerWorkflow(
-      'pipeline-cloudflare.yml',
+      workflow,
       inputs
     );
 
     return NextResponse.json({
       success: true,
       workflowTriggered: true,
-      workflow: 'pipeline-cloudflare.yml',
+      workflow,
+      startStage: 'cloudflare',
       message: 'R2 upload workflow started in background.',
       data: result,
     });

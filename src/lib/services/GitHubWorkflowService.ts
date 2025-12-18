@@ -55,12 +55,35 @@ export class GitHubWorkflowService {
       };
     } catch (error: any) {
       console.error('Failed to trigger workflow:', error);
-      if (error.status === 401) {
+
+      // Enhanced error messages for common failure cases
+      const errorMessage = error.message || String(error);
+
+      if (error.status === 404 || errorMessage.includes('Not Found')) {
         throw new Error(
-          'GitHub Authentication Failed: The provided token is invalid or expired. Please check GITHUB_TOKEN in .env.local'
+          `Workflow '${workflowId}' not found. Ensure the workflow file exists on the 'main' branch and has been committed and pushed to GitHub.`
         );
       }
-      throw new Error(`Workflow trigger failed: ${error.message || error}`);
+
+      if (error.status === 401 || errorMessage.includes('Bad credentials')) {
+        throw new Error(
+          `GitHub authentication failed. Check GITHUB_TOKEN configuration in .env.local`
+        );
+      }
+
+      if (error.status === 403) {
+        throw new Error(
+          `GitHub API rate limit exceeded or insufficient permissions. Check your token permissions.`
+        );
+      }
+
+      if (error.status === 422) {
+        throw new Error(
+          `Invalid workflow inputs. Check that all required workflow inputs are provided: ${errorMessage}`
+        );
+      }
+
+      throw new Error(`Workflow trigger failed: ${errorMessage}`);
     }
   }
 

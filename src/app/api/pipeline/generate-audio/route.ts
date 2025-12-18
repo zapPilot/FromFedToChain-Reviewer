@@ -36,20 +36,22 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Determine which workflow to trigger based on format
-    let workflow: string;
-    const inputs = { contentId, language };
+    // Use unified workflow with appropriate start_stage
+    const workflow = 'pipeline-unified.yml';
+    let startStage: string;
 
     if (format === 'm3u8') {
-      workflow = 'pipeline-m3u8.yml';
+      // Start directly at M3U8 conversion (assumes WAV already exists)
+      startStage = 'm3u8';
     } else if (format === 'both') {
-      // Trigger audio first, M3U8 will be triggered separately or in sequence
-      await GitHubWorkflowService.triggerWorkflow('pipeline-audio.yml', inputs);
-      workflow = 'pipeline-m3u8.yml';
+      // Start at audio generation, will proceed through M3U8 automatically
+      startStage = 'audio';
     } else {
-      // Default: wav
-      workflow = 'pipeline-audio.yml';
+      // Default: wav only
+      startStage = 'audio';
     }
+
+    const inputs = { contentId, language, start_stage: startStage };
 
     const result = await GitHubWorkflowService.triggerWorkflow(
       workflow,
@@ -60,6 +62,8 @@ export async function POST(request: NextRequest) {
       success: true,
       workflowTriggered: true,
       workflow,
+      startStage,
+      format,
       message:
         'Audio generation started in background. Check status in a few minutes.',
       data: result,
