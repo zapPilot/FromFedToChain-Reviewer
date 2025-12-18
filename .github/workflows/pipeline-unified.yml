@@ -1,0 +1,518 @@
+name: Pipeline - Unified
+
+on:
+  workflow_dispatch:
+    inputs:
+      contentId:
+        description: 'Content ID to process'
+        required: true
+        type: string
+      start_stage:
+        type: choice
+        description: 'Stage to start from (for restarts)'
+        default: 'translate'
+        options:
+          - translate
+          - audio
+          - m3u8
+          - cloudflare
+          - content-upload
+      language:
+        description: 'Target language (leave empty for all)'
+        required: false
+        type: string
+
+jobs:
+  translate:
+    if: github.event.inputs.start_stage == 'translate'
+    runs-on: ubuntu-latest
+    outputs:
+      contentId: ${{ github.event.inputs.contentId }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Google Cloud credentials
+        run: |
+          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' | base64 -d > /tmp/service-account.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json" >> $GITHUB_ENV
+
+      - name: Run translation service
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          CONTENT_ID: ${{ inputs.contentId }}
+          TARGET_LANGUAGE: ${{ inputs.language }}
+        run: |
+          npx tsx scripts/run-translation.ts
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f /tmp/service-account.json
+
+  audio:
+    needs: translate
+    if: always() && (github.event.inputs.start_stage == 'audio' || needs.translate.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./FromFedToChain
+        run: npm ci
+
+      - name: Setup Google Cloud credentials
+        run: |
+          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' | base64 -d > /tmp/service-account.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json" >> $GITHUB_ENV
+
+      - name: Generate audio files
+        working-directory: ./FromFedToChain
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          node -e "
+            const { AudioService } = require('./src/services/AudioService.js');
+            const { ContentManager } = require('./src/ContentManager.js');
+
+            async function generateAudio() {
+              const contentId = '$CONTENT_ID';
+              console.log('Starting audio generation for:', contentId);
+
+              try {
+                const result = await AudioService.generateAudio(contentId);
+                console.log('Audio generation completed:', JSON.stringify(result, null, 2));
+
+                // Update source content status
+                await ContentManager.updateSourceStatus(contentId, 'wav');
+                console.log('Status updated to: wav');
+              } catch (error) {
+                console.error('Audio generation failed:', error.message);
+                process.exit(1);
+              }
+            }
+
+            generateAudio();
+          "
+
+      - name: Commit audio files
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add FromFedToChain/audio/
+          git add FromFedToChain/content/
+          git diff --staged --quiet || git commit -m "Audio generation: $CONTENT_ID"
+          git push
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f /tmp/service-account.json
+
+      - name: Upload audio artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-${{ github.event.inputs.contentId }}
+          path: FromFedToChain/audio/**/*.wav
+          retention-days: 7
+
+      - name: Update Supabase status (success)
+        if: success()
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{
+              "status": "wav",
+              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'
+
+      - name: Update Supabase status (failure)
+        if: failure()
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          echo "Audio generation failed for $CONTENT_ID"
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{
+              "status": "translated",
+              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'
+
+  m3u8:
+    needs: audio
+    if: always() && (github.event.inputs.start_stage == 'm3u8' || needs.audio.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version
+
+      - name: Install dependencies
+        working-directory: ./FromFedToChain
+        run: npm ci
+
+      - name: Convert to M3U8
+        working-directory: ./FromFedToChain
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          node -e "
+            const { M3U8AudioService } = require('./src/services/M3U8AudioService.js');
+            const { ContentManager } = require('./src/ContentManager.js');
+
+            async function convertM3U8() {
+              const contentId = '$CONTENT_ID';
+              console.log('Starting M3U8 conversion for:', contentId);
+
+              try {
+                const result = await M3U8AudioService.convertToM3U8(contentId);
+                console.log('M3U8 conversion completed:', JSON.stringify(result, null, 2));
+
+                // Update source content status
+                await ContentManager.updateSourceStatus(contentId, 'm3u8');
+                console.log('Status updated to: m3u8');
+              } catch (error) {
+                console.error('M3U8 conversion failed:', error.message);
+                process.exit(1);
+              }
+            }
+
+            convertM3U8();
+          "
+
+      - name: Commit M3U8 files
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add FromFedToChain/audio/m3u8/
+          git add FromFedToChain/content/
+          git diff --staged --quiet || git commit -m "M3U8 conversion: $CONTENT_ID"
+          git push
+
+      - name: Upload M3U8 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: m3u8-${{ github.event.inputs.contentId }}
+          path: FromFedToChain/audio/m3u8/**/*
+          retention-days: 7
+
+      - name: Update Supabase status (success)
+        if: success()
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{
+              "status": "m3u8",
+              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'
+
+      - name: Update Supabase status (failure)
+        if: failure()
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          echo "M3U8 conversion failed for $CONTENT_ID"
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{
+              "status": "wav",
+              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'
+
+  cloudflare:
+    needs: m3u8
+    if: always() && (github.event.inputs.start_stage == 'cloudflare' || needs.m3u8.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          rclone version
+
+      - name: Configure rclone for Cloudflare R2
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${{ secrets.R2_ACCESS_KEY_ID }}
+          secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          endpoint = ${{ secrets.R2_ENDPOINT }}
+          region = auto
+          acl = private
+          EOF
+
+      - name: Install dependencies
+        working-directory: ./FromFedToChain
+        run: npm ci
+
+      - name: Upload to Cloudflare R2
+        working-directory: ./FromFedToChain
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          node -e "
+            const { CloudflareR2Service } = require('./src/services/CloudflareR2Service.js');
+            const { ContentManager } = require('./src/ContentManager.js');
+
+            async function uploadR2() {
+              const contentId = '$CONTENT_ID';
+              console.log('Starting Cloudflare R2 upload for:', contentId);
+
+              try {
+                const result = await CloudflareR2Service.uploadAudioToR2(contentId);
+                console.log('R2 upload completed:', JSON.stringify(result, null, 2));
+
+                // Update source content status
+                await ContentManager.updateSourceStatus(contentId, 'cloudflare');
+                console.log('Status updated to: cloudflare');
+              } catch (error) {
+                console.error('R2 upload failed:', error.message);
+                process.exit(1);
+              }
+            }
+
+            uploadR2();
+          "
+
+      - name: Commit streaming URLs
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add FromFedToChain/content/
+          git diff --staged --quiet || git commit -m "Cloudflare R2 upload: $CONTENT_ID"
+          git push
+
+      - name: Cleanup rclone config
+        if: always()
+        run: rm -rf ~/.config/rclone
+
+      - name: Update Supabase status (success)
+        if: success()
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{
+              "status": "cloudflare",
+              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'
+
+      - name: Update Supabase status (failure)
+        if: failure()
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          echo "R2 upload failed for $CONTENT_ID"
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{
+              "status": "m3u8",
+              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'
+
+  content-upload:
+    needs: cloudflare
+    if: always() && (github.event.inputs.start_stage == 'content-upload' || needs.cloudflare.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          rclone version
+
+      - name: Configure rclone for Cloudflare R2
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${{ secrets.R2_ACCESS_KEY_ID }}
+          secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          endpoint = ${{ secrets.R2_ENDPOINT }}
+          region = auto
+          acl = private
+          EOF
+
+      - name: Install dependencies
+        working-directory: ./FromFedToChain
+        run: npm ci
+
+      - name: Upload content JSON to R2
+        working-directory: ./FromFedToChain
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          node -e "
+            const { ContentPipelineService } = require('./src/services/ContentPipelineService.js');
+            const { ContentManager } = require('./src/ContentManager.js');
+
+            async function uploadContent() {
+              const contentId = '$CONTENT_ID';
+              console.log('Starting content upload for:', contentId);
+
+              try {
+                const result = await ContentPipelineService.uploadContentToCloudflare(contentId);
+                console.log('Content upload completed:', JSON.stringify(result, null, 2));
+
+                // Update source content status
+                await ContentManager.updateSourceStatus(contentId, 'content');
+                console.log('Status updated to: content');
+              } catch (error) {
+                console.error('Content upload failed:', error.message);
+                process.exit(1);
+              }
+            }
+
+            uploadContent();
+          "
+
+      - name: Commit status update
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add FromFedToChain/content/
+          git diff --staged --quiet || git commit -m "Pipeline complete: $CONTENT_ID"
+          git push
+
+      - name: Cleanup rclone config
+        if: always()
+        run: rm -rf ~/.config/rclone
+
+      - name: Update Supabase status (success)
+        if: success()
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{
+              "status": "content",
+              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'
+
+      - name: Update Supabase status (failure)
+        if: failure()
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          CONTENT_ID="${{ github.event.inputs.contentId }}"
+
+          echo "Content upload failed for $CONTENT_ID"
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{
+              "status": "cloudflare",
+              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'

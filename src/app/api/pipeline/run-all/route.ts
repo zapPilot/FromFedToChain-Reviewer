@@ -33,22 +33,23 @@ export async function POST() {
 
     const results: WorkflowTriggerResult[] = [];
 
-    // Trigger translate workflow for each pending content item
-    // The workflow chain (audio → m3u8 → cloudflare → content-upload) will proceed automatically
+    // Trigger unified pipeline workflow for each pending content item
+    // All stages (translate → audio → m3u8 → cloudflare → content-upload) run sequentially in single workflow
     for (const item of pending) {
       const contentId = item.id;
 
       try {
-        console.log(`Triggering pipeline chain for content: ${contentId}`);
+        console.log(`Triggering unified pipeline for content: ${contentId}`);
 
-        // Trigger only the entry point - subsequent workflows will trigger automatically
-        await GitHubWorkflowService.triggerWorkflow('pipeline-translate.yml', {
+        // Trigger unified workflow starting from translate stage
+        await GitHubWorkflowService.triggerWorkflow('pipeline-unified.yml', {
           contentId,
+          start_stage: 'translate',
         });
 
         results.push({
           contentId,
-          workflowsTriggered: ['pipeline-translate.yml (chain entry point)'],
+          workflowsTriggered: ['pipeline-unified.yml'],
           success: true,
         });
       } catch (error) {
@@ -70,7 +71,7 @@ export async function POST() {
       successful: successCount,
       failed: results.length - successCount,
       results,
-      message: `Started pipeline chains for ${successCount}/${results.length} content item(s). Workflows will execute sequentially.`,
+      message: `Started unified pipeline for ${successCount}/${results.length} content item(s). All stages will execute sequentially in single workflow.`,
     });
   } catch (error) {
     console.error('Failed to run pipeline for pending content:', error);
