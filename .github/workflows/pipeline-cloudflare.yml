@@ -12,9 +12,48 @@ on:
         required: false
         type: string
 
+  workflow_run:
+    workflows: ["Pipeline - M3U8 Conversion"]
+    types:
+      - completed
+    branches:
+      - main
+
 jobs:
+  extract-context:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      contentId: ${{ steps.extract.outputs.contentId }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Extract contentId from commit message
+        id: extract
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Latest commit: $COMMIT_MSG"
+
+          # Extract pattern: "M3U8 conversion: {contentId}"
+          CONTENT_ID=$(echo "$COMMIT_MSG" | grep -oP '(?<=M3U8 conversion: ).+' | tr -d '[:space:]')
+
+          if [ -z "$CONTENT_ID" ]; then
+            echo "ERROR: Could not extract contentId from commit: $COMMIT_MSG"
+            exit 1
+          fi
+
+          echo "Extracted contentId: $CONTENT_ID"
+          echo "contentId=$CONTENT_ID" >> $GITHUB_OUTPUT
+
   upload-r2:
     runs-on: ubuntu-latest
+    needs: extract-context
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -52,12 +91,14 @@ jobs:
       - name: Upload to Cloudflare R2
         working-directory: ./FromFedToChain
         run: |
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
           node -e "
             const { CloudflareR2Service } = require('./src/services/CloudflareR2Service.js');
             const { ContentManager } = require('./src/ContentManager.js');
 
             async function uploadR2() {
-              const contentId = '${{ inputs.contentId }}';
+              const contentId = '$CONTENT_ID';
               console.log('Starting Cloudflare R2 upload for:', contentId);
 
               try {
@@ -78,10 +119,12 @@ jobs:
 
       - name: Commit streaming URLs
         run: |
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add FromFedToChain/content/
-          git diff --staged --quiet || git commit -m "Cloudflare R2 upload: ${{ inputs.contentId }}"
+          git diff --staged --quiet || git commit -m "Cloudflare R2 upload: $CONTENT_ID"
           git push
 
       - name: Cleanup rclone config
@@ -94,7 +137,9 @@ jobs:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.${{ inputs.contentId }}&language=eq.zh-TW" \
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
@@ -110,8 +155,10 @@ jobs:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          echo "R2 upload failed for ${{ inputs.contentId }}"
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.${{ inputs.contentId }}&language=eq.zh-TW" \
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
+          echo "R2 upload failed for $CONTENT_ID"
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \

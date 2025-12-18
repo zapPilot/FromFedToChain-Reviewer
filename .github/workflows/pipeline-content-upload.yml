@@ -8,9 +8,48 @@ on:
         required: true
         type: string
 
+  workflow_run:
+    workflows: ["Pipeline - Cloudflare R2 Upload"]
+    types:
+      - completed
+    branches:
+      - main
+
 jobs:
+  extract-context:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      contentId: ${{ steps.extract.outputs.contentId }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Extract contentId from commit message
+        id: extract
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Latest commit: $COMMIT_MSG"
+
+          # Extract pattern: "Cloudflare R2 upload: {contentId}"
+          CONTENT_ID=$(echo "$COMMIT_MSG" | grep -oP '(?<=Cloudflare R2 upload: ).+' | tr -d '[:space:]')
+
+          if [ -z "$CONTENT_ID" ]; then
+            echo "ERROR: Could not extract contentId from commit: $COMMIT_MSG"
+            exit 1
+          fi
+
+          echo "Extracted contentId: $CONTENT_ID"
+          echo "contentId=$CONTENT_ID" >> $GITHUB_OUTPUT
+
   upload-content:
     runs-on: ubuntu-latest
+    needs: extract-context
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -48,12 +87,14 @@ jobs:
       - name: Upload content JSON to R2
         working-directory: ./FromFedToChain
         run: |
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
           node -e "
             const { ContentPipelineService } = require('./src/services/ContentPipelineService.js');
             const { ContentManager } = require('./src/ContentManager.js');
 
             async function uploadContent() {
-              const contentId = '${{ inputs.contentId }}';
+              const contentId = '$CONTENT_ID';
               console.log('Starting content upload for:', contentId);
 
               try {
@@ -74,12 +115,51 @@ jobs:
 
       - name: Commit status update
         run: |
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add FromFedToChain/content/
-          git diff --staged --quiet || git commit -m "Content upload complete: ${{ inputs.contentId }}"
+          git diff --staged --quiet || git commit -m "Content upload complete: $CONTENT_ID"
           git push
 
       - name: Cleanup rclone config
         if: always()
         run: rm -rf ~/.config/rclone
+
+      - name: Update Supabase status (success)
+        if: success()
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{
+              "status": "content",
+              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'
+
+      - name: Update Supabase status (failure)
+        if: failure()
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
+          echo "Content upload failed for $CONTENT_ID"
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d '{
+              "status": "cloudflare",
+              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'

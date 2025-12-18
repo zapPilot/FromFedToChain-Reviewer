@@ -12,9 +12,48 @@ on:
         required: false
         type: string
 
+  workflow_run:
+    workflows: ["Pipeline - Audio Generation"]
+    types:
+      - completed
+    branches:
+      - main
+
 jobs:
+  extract-context:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      contentId: ${{ steps.extract.outputs.contentId }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Extract contentId from commit message
+        id: extract
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Latest commit: $COMMIT_MSG"
+
+          # Extract pattern: "Audio generation: {contentId}"
+          CONTENT_ID=$(echo "$COMMIT_MSG" | grep -oP '(?<=Audio generation: ).+' | tr -d '[:space:]')
+
+          if [ -z "$CONTENT_ID" ]; then
+            echo "ERROR: Could not extract contentId from commit: $COMMIT_MSG"
+            exit 1
+          fi
+
+          echo "Extracted contentId: $CONTENT_ID"
+          echo "contentId=$CONTENT_ID" >> $GITHUB_OUTPUT
+
   convert-m3u8:
     runs-on: ubuntu-latest
+    needs: extract-context
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -39,12 +78,14 @@ jobs:
       - name: Convert to M3U8
         working-directory: ./FromFedToChain
         run: |
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
           node -e "
             const { M3U8AudioService } = require('./src/services/M3U8AudioService.js');
             const { ContentManager } = require('./src/ContentManager.js');
 
             async function convertM3U8() {
-              const contentId = '${{ inputs.contentId }}';
+              const contentId = '$CONTENT_ID';
               console.log('Starting M3U8 conversion for:', contentId);
 
               try {
@@ -65,17 +106,19 @@ jobs:
 
       - name: Commit M3U8 files
         run: |
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add FromFedToChain/audio/m3u8/
           git add FromFedToChain/content/
-          git diff --staged --quiet || git commit -m "M3U8 conversion: ${{ inputs.contentId }}"
+          git diff --staged --quiet || git commit -m "M3U8 conversion: $CONTENT_ID"
           git push
 
       - name: Upload M3U8 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: m3u8-${{ inputs.contentId }}
+          name: m3u8-${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}
           path: FromFedToChain/audio/m3u8/**/*
           retention-days: 7
 
@@ -85,7 +128,9 @@ jobs:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.${{ inputs.contentId }}&language=eq.zh-TW" \
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
@@ -101,8 +146,10 @@ jobs:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          echo "M3U8 conversion failed for ${{ inputs.contentId }}"
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.${{ inputs.contentId }}&language=eq.zh-TW" \
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
+          echo "M3U8 conversion failed for $CONTENT_ID"
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \

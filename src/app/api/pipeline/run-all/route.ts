@@ -32,37 +32,30 @@ export async function POST() {
     );
 
     const results: WorkflowTriggerResult[] = [];
-    const workflows = [
-      'pipeline-translate.yml',
-      'pipeline-audio.yml',
-      'pipeline-m3u8.yml',
-      'pipeline-cloudflare.yml',
-    ];
 
-    // Trigger workflows for each pending content item
+    // Trigger translate workflow for each pending content item
+    // The workflow chain (audio → m3u8 → cloudflare → content-upload) will proceed automatically
     for (const item of pending) {
       const contentId = item.id;
-      const triggeredWorkflows: string[] = [];
 
       try {
-        console.log(`Triggering workflows for content: ${contentId}`);
+        console.log(`Triggering pipeline chain for content: ${contentId}`);
 
-        // Trigger each workflow in sequence
-        for (const workflow of workflows) {
-          await GitHubWorkflowService.triggerWorkflow(workflow, { contentId });
-          triggeredWorkflows.push(workflow);
-        }
+        // Trigger only the entry point - subsequent workflows will trigger automatically
+        await GitHubWorkflowService.triggerWorkflow('pipeline-translate.yml', {
+          contentId,
+        });
 
         results.push({
           contentId,
-          workflowsTriggered: triggeredWorkflows,
+          workflowsTriggered: ['pipeline-translate.yml (chain entry point)'],
           success: true,
         });
       } catch (error) {
-        console.error(`Failed to trigger workflows for ${contentId}:`, error);
+        console.error(`Failed to trigger pipeline for ${contentId}:`, error);
         results.push({
           contentId,
-          workflowsTriggered: triggeredWorkflows,
+          workflowsTriggered: [],
           success: false,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -77,7 +70,7 @@ export async function POST() {
       successful: successCount,
       failed: results.length - successCount,
       results,
-      message: `Triggered pipeline workflows for ${successCount}/${results.length} content item(s)`,
+      message: `Started pipeline chains for ${successCount}/${results.length} content item(s). Workflows will execute sequentially.`,
     });
   } catch (error) {
     console.error('Failed to run pipeline for pending content:', error);

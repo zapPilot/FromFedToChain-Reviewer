@@ -12,9 +12,48 @@ on:
         required: false
         type: string
 
+  workflow_run:
+    workflows: ["Pipeline - Translation"]
+    types:
+      - completed
+    branches:
+      - main
+
 jobs:
+  extract-context:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      contentId: ${{ steps.extract.outputs.contentId }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Extract contentId from commit message
+        id: extract
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Latest commit: $COMMIT_MSG"
+
+          # Extract pattern: "Translation: {contentId}"
+          CONTENT_ID=$(echo "$COMMIT_MSG" | grep -oP '(?<=Translation: ).+' | tr -d '[:space:]')
+
+          if [ -z "$CONTENT_ID" ]; then
+            echo "ERROR: Could not extract contentId from commit: $COMMIT_MSG"
+            exit 1
+          fi
+
+          echo "Extracted contentId: $CONTENT_ID"
+          echo "contentId=$CONTENT_ID" >> $GITHUB_OUTPUT
+
   generate-audio:
     runs-on: ubuntu-latest
+    needs: extract-context
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,12 +77,14 @@ jobs:
       - name: Generate audio files
         working-directory: ./FromFedToChain
         run: |
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
           node -e "
             const { AudioService } = require('./src/services/AudioService.js');
             const { ContentManager } = require('./src/ContentManager.js');
 
             async function generateAudio() {
-              const contentId = '${{ inputs.contentId }}';
+              const contentId = '$CONTENT_ID';
               console.log('Starting audio generation for:', contentId);
 
               try {
@@ -64,11 +105,13 @@ jobs:
 
       - name: Commit audio files
         run: |
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add FromFedToChain/audio/
           git add FromFedToChain/content/
-          git diff --staged --quiet || git commit -m "Audio generation: ${{ inputs.contentId }}"
+          git diff --staged --quiet || git commit -m "Audio generation: $CONTENT_ID"
           git push
 
       - name: Cleanup credentials
@@ -78,7 +121,7 @@ jobs:
       - name: Upload audio artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: audio-${{ inputs.contentId }}
+          name: audio-${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}
           path: FromFedToChain/audio/**/*.wav
           retention-days: 7
 
@@ -88,7 +131,9 @@ jobs:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.${{ inputs.contentId }}&language=eq.zh-TW" \
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
@@ -104,8 +149,10 @@ jobs:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          echo "Audio generation failed for ${{ inputs.contentId }}"
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.${{ inputs.contentId }}&language=eq.zh-TW" \
+          CONTENT_ID="${{ github.event_name == 'workflow_dispatch' && inputs.contentId || needs.extract-context.outputs.contentId }}"
+
+          echo "Audio generation failed for $CONTENT_ID"
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \

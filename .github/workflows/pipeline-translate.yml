@@ -28,10 +28,9 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: FromFedToChain/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: ./FromFedToChain
         run: npm ci
 
       - name: Setup Google Cloud credentials
@@ -40,73 +39,14 @@ jobs:
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json" >> $GITHUB_ENV
 
       - name: Run translation service
-        working-directory: ./FromFedToChain
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          CONTENT_ID: ${{ inputs.contentId }}
+          TARGET_LANGUAGE: ${{ inputs.language }}
         run: |
-          node -e "
-            const { TranslationService } = require('./src/services/TranslationService.js');
-            const { ContentManager } = require('./src/ContentManager.js');
-
-            async function translate() {
-              const contentId = '${{ inputs.contentId }}';
-              console.log('Starting translation for:', contentId);
-
-              try {
-                const result = await TranslationService.translateContent(contentId);
-                console.log('Translation completed:', JSON.stringify(result, null, 2));
-
-                // Update source content status
-                await ContentManager.updateSourceStatus(contentId, 'translated');
-                console.log('Status updated to: translated');
-              } catch (error) {
-                console.error('Translation failed:', error.message);
-                process.exit(1);
-              }
-            }
-
-            translate();
-          "
-
-      - name: Commit translated files
-        run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git add FromFedToChain/content/
-          git diff --staged --quiet || git commit -m "Translation: ${{ inputs.contentId }}"
-          git push
+          npx tsx scripts/run-translation.ts
 
       - name: Cleanup credentials
         if: always()
         run: rm -f /tmp/service-account.json
-
-      - name: Update Supabase status (success)
-        if: success()
-        env:
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: |
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.${{ inputs.contentId }}&language=eq.zh-TW" \
-            -H "apikey: ${SUPABASE_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_KEY}" \
-            -H "Content-Type: application/json" \
-            -H "Prefer: return=minimal" \
-            -d '{
-              "status": "translated",
-              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
-            }'
-
-      - name: Update Supabase status (failure)
-        if: failure()
-        env:
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: |
-          echo "Translation failed for ${{ inputs.contentId }}"
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.${{ inputs.contentId }}&language=eq.zh-TW" \
-            -H "apikey: ${SUPABASE_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_KEY}" \
-            -H "Content-Type: application/json" \
-            -H "Prefer: return=minimal" \
-            -d '{
-              "status": "draft",
-              "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
-            }'
