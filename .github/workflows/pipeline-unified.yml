@@ -22,6 +22,10 @@ on:
         required: false
         type: string
 
+concurrency:
+  group: pipeline-${{ github.event.inputs.contentId }}
+  cancel-in-progress: false
+
 jobs:
   translate:
     if: github.event.inputs.start_stage == 'translate'
@@ -32,7 +36,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check if translation already complete
+        id: check_completion
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          chmod +x .github/scripts/check-stage-completion.sh
+          FORCE_RUN="${{ github.event.inputs.start_stage == 'translate' }}"
+          .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "translate" "$FORCE_RUN"
+
       - name: Setup Node.js
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -40,14 +55,17 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: npm ci
 
       - name: Setup Google Cloud credentials
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' | base64 -d > /tmp/service-account.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json" >> $GITHUB_ENV
 
       - name: Run translation service
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
@@ -68,7 +86,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check if audio generation already complete
+        id: check_completion
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          chmod +x .github/scripts/check-stage-completion.sh
+          FORCE_RUN="${{ github.event.inputs.start_stage == 'audio' }}"
+          .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "audio" "$FORCE_RUN"
+
       - name: Setup Node.js
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -76,15 +105,18 @@ jobs:
           cache-dependency-path: FromFedToChain/package-lock.json
 
       - name: Install dependencies
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         working-directory: ./FromFedToChain
         run: npm ci
 
       - name: Setup Google Cloud credentials
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' | base64 -d > /tmp/service-account.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json" >> $GITHUB_ENV
 
       - name: Generate audio files
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         working-directory: ./FromFedToChain
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
@@ -114,6 +146,7 @@ jobs:
           "
 
       - name: Commit audio files
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
@@ -129,6 +162,7 @@ jobs:
         run: rm -f /tmp/service-account.json
 
       - name: Upload audio artifacts
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: audio-${{ github.event.inputs.contentId }}
@@ -136,14 +170,14 @@ jobs:
           retention-days: 7
 
       - name: Update Supabase status (success)
-        if: success()
+        if: success() && steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
@@ -154,7 +188,7 @@ jobs:
             }'
 
       - name: Update Supabase status (failure)
-        if: failure()
+        if: failure() && steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
@@ -162,7 +196,7 @@ jobs:
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
           echo "Audio generation failed for $CONTENT_ID"
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
@@ -180,7 +214,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check if M3U8 conversion already complete
+        id: check_completion
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          chmod +x .github/scripts/check-stage-completion.sh
+          FORCE_RUN="${{ github.event.inputs.start_stage == 'm3u8' }}"
+          .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "m3u8" "$FORCE_RUN"
+
       - name: Setup Node.js
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -188,16 +233,19 @@ jobs:
           cache-dependency-path: FromFedToChain/package-lock.json
 
       - name: Install FFmpeg
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           ffmpeg -version
 
       - name: Install dependencies
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         working-directory: ./FromFedToChain
         run: npm ci
 
       - name: Convert to M3U8
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         working-directory: ./FromFedToChain
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
@@ -227,6 +275,7 @@ jobs:
           "
 
       - name: Commit M3U8 files
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
@@ -238,6 +287,7 @@ jobs:
           git push
 
       - name: Upload M3U8 artifacts
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: m3u8-${{ github.event.inputs.contentId }}
@@ -245,14 +295,14 @@ jobs:
           retention-days: 7
 
       - name: Update Supabase status (success)
-        if: success()
+        if: success() && steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
@@ -263,7 +313,7 @@ jobs:
             }'
 
       - name: Update Supabase status (failure)
-        if: failure()
+        if: failure() && steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
@@ -271,7 +321,7 @@ jobs:
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
           echo "M3U8 conversion failed for $CONTENT_ID"
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
@@ -289,7 +339,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check if Cloudflare upload already complete
+        id: check_completion
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          chmod +x .github/scripts/check-stage-completion.sh
+          FORCE_RUN="${{ github.event.inputs.start_stage == 'cloudflare' }}"
+          .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "cloudflare" "$FORCE_RUN"
+
       - name: Setup Node.js
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -297,11 +358,13 @@ jobs:
           cache-dependency-path: FromFedToChain/package-lock.json
 
       - name: Install rclone
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           curl https://rclone.org/install.sh | sudo bash
           rclone version
 
       - name: Configure rclone for Cloudflare R2
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           mkdir -p ~/.config/rclone
           cat > ~/.config/rclone/rclone.conf << EOF
@@ -316,10 +379,12 @@ jobs:
           EOF
 
       - name: Install dependencies
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         working-directory: ./FromFedToChain
         run: npm ci
 
       - name: Upload to Cloudflare R2
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         working-directory: ./FromFedToChain
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
@@ -349,6 +414,7 @@ jobs:
           "
 
       - name: Commit streaming URLs
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
@@ -363,14 +429,14 @@ jobs:
         run: rm -rf ~/.config/rclone
 
       - name: Update Supabase status (success)
-        if: success()
+        if: success() && steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
@@ -381,7 +447,7 @@ jobs:
             }'
 
       - name: Update Supabase status (failure)
-        if: failure()
+        if: failure() && steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
@@ -389,7 +455,7 @@ jobs:
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
           echo "R2 upload failed for $CONTENT_ID"
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
@@ -407,7 +473,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check if content upload already complete
+        id: check_completion
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          chmod +x .github/scripts/check-stage-completion.sh
+          FORCE_RUN="${{ github.event.inputs.start_stage == 'content-upload' }}"
+          .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "content-upload" "$FORCE_RUN"
+
       - name: Setup Node.js
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -415,11 +492,13 @@ jobs:
           cache-dependency-path: FromFedToChain/package-lock.json
 
       - name: Install rclone
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           curl https://rclone.org/install.sh | sudo bash
           rclone version
 
       - name: Configure rclone for Cloudflare R2
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           mkdir -p ~/.config/rclone
           cat > ~/.config/rclone/rclone.conf << EOF
@@ -434,10 +513,12 @@ jobs:
           EOF
 
       - name: Install dependencies
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         working-directory: ./FromFedToChain
         run: npm ci
 
       - name: Upload content JSON to R2
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         working-directory: ./FromFedToChain
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
@@ -467,6 +548,7 @@ jobs:
           "
 
       - name: Commit status update
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
@@ -481,14 +563,14 @@ jobs:
         run: rm -rf ~/.config/rclone
 
       - name: Update Supabase status (success)
-        if: success()
+        if: success() && steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
@@ -499,7 +581,7 @@ jobs:
             }'
 
       - name: Update Supabase status (failure)
-        if: failure()
+        if: failure() && steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
@@ -507,7 +589,7 @@ jobs:
           CONTENT_ID="${{ github.event.inputs.contentId }}"
 
           echo "Content upload failed for $CONTENT_ID"
-          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW" \
+          curl -X PATCH "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
