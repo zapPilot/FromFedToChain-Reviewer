@@ -35,8 +35,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# project
-audio/
+# project - generated audio files only (not source code in src/lib/services/audio/)
+/audio/
 
 # Claude hooks dependencies
 .claude/hooks/node_modules/
