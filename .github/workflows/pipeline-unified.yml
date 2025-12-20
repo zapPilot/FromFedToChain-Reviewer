@@ -86,6 +86,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout FromFedToChain repository
+        uses: actions/checkout@v4
+        with:
+          repository: zapPilot/FromFedToChain
+          path: FromFedToChain
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check if audio generation already complete
         id: check_completion
         env:
@@ -102,7 +109,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: FromFedToChain/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -214,6 +221,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout FromFedToChain repository
+        uses: actions/checkout@v4
+        with:
+          repository: zapPilot/FromFedToChain
+          path: FromFedToChain
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check if M3U8 conversion already complete
         id: check_completion
         env:
@@ -230,7 +244,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: FromFedToChain/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install FFmpeg
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -339,6 +353,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout FromFedToChain repository
+        uses: actions/checkout@v4
+        with:
+          repository: zapPilot/FromFedToChain
+          path: FromFedToChain
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check if Cloudflare upload already complete
         id: check_completion
         env:
@@ -355,7 +376,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: FromFedToChain/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install rclone
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -473,6 +494,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout FromFedToChain repository
+        uses: actions/checkout@v4
+        with:
+          repository: zapPilot/FromFedToChain
+          path: FromFedToChain
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check if content upload already complete
         id: check_completion
         env:
@@ -489,7 +517,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: FromFedToChain/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install rclone
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
