@@ -140,33 +140,11 @@ jobs:
 
       - name: Generate audio files
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        working-directory: ./FromFedToChain
-        run: |
-          CONTENT_ID="${{ github.event.inputs.contentId }}"
-
-          node -e "
-            const { AudioService } = require('./src/services/AudioService.js');
-            const { ContentManager } = require('./src/ContentManager.js');
-
-            async function generateAudio() {
-              const contentId = '$CONTENT_ID';
-              console.log('Starting audio generation for:', contentId);
-
-              try {
-                const result = await AudioService.generateAudio(contentId);
-                console.log('Audio generation completed:', JSON.stringify(result, null, 2));
-
-                // Update source content status
-                await ContentManager.updateSourceStatus(contentId, 'wav');
-                console.log('Status updated to: wav');
-              } catch (error) {
-                console.error('Audio generation failed:', error.message);
-                process.exit(1);
-              }
-            }
-
-            generateAudio();
-          "
+        env:
+          CONTENT_ID: ${{ github.event.inputs.contentId }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: npx tsx scripts/run-audio-generation.ts
 
       - name: Commit audio files
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -292,33 +270,11 @@ jobs:
 
       - name: Convert to M3U8
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        working-directory: ./FromFedToChain
-        run: |
-          CONTENT_ID="${{ github.event.inputs.contentId }}"
-
-          node -e "
-            const { M3U8AudioService } = require('./src/services/M3U8AudioService.js');
-            const { ContentManager } = require('./src/ContentManager.js');
-
-            async function convertM3U8() {
-              const contentId = '$CONTENT_ID';
-              console.log('Starting M3U8 conversion for:', contentId);
-
-              try {
-                const result = await M3U8AudioService.convertToM3U8(contentId);
-                console.log('M3U8 conversion completed:', JSON.stringify(result, null, 2));
-
-                // Update source content status
-                await ContentManager.updateSourceStatus(contentId, 'm3u8');
-                console.log('Status updated to: m3u8');
-              } catch (error) {
-                console.error('M3U8 conversion failed:', error.message);
-                process.exit(1);
-              }
-            }
-
-            convertM3U8();
-          "
+        env:
+          CONTENT_ID: ${{ github.event.inputs.contentId }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: npx tsx scripts/run-m3u8-conversion.ts
 
       - name: Commit M3U8 files
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -454,33 +410,11 @@ jobs:
 
       - name: Upload to Cloudflare R2
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        working-directory: ./FromFedToChain
-        run: |
-          CONTENT_ID="${{ github.event.inputs.contentId }}"
-
-          node -e "
-            const { CloudflareR2Service } = require('./src/services/CloudflareR2Service.js');
-            const { ContentManager } = require('./src/ContentManager.js');
-
-            async function uploadR2() {
-              const contentId = '$CONTENT_ID';
-              console.log('Starting Cloudflare R2 upload for:', contentId);
-
-              try {
-                const result = await CloudflareR2Service.uploadAudioToR2(contentId);
-                console.log('R2 upload completed:', JSON.stringify(result, null, 2));
-
-                // Update source content status
-                await ContentManager.updateSourceStatus(contentId, 'cloudflare');
-                console.log('Status updated to: cloudflare');
-              } catch (error) {
-                console.error('R2 upload failed:', error.message);
-                process.exit(1);
-              }
-            }
-
-            uploadR2();
-          "
+        env:
+          CONTENT_ID: ${{ github.event.inputs.contentId }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: npx tsx scripts/run-cloudflare-upload.ts
 
       - name: Commit streaming URLs
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -611,33 +545,11 @@ jobs:
 
       - name: Upload content JSON to R2
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        working-directory: ./FromFedToChain
-        run: |
-          CONTENT_ID="${{ github.event.inputs.contentId }}"
-
-          node -e "
-            const { ContentPipelineService } = require('./src/services/ContentPipelineService.js');
-            const { ContentManager } = require('./src/ContentManager.js');
-
-            async function uploadContent() {
-              const contentId = '$CONTENT_ID';
-              console.log('Starting content upload for:', contentId);
-
-              try {
-                const result = await ContentPipelineService.uploadContentToCloudflare(contentId);
-                console.log('Content upload completed:', JSON.stringify(result, null, 2));
-
-                // Update source content status
-                await ContentManager.updateSourceStatus(contentId, 'content');
-                console.log('Status updated to: content');
-              } catch (error) {
-                console.error('Content upload failed:', error.message);
-                process.exit(1);
-              }
-            }
-
-            uploadContent();
-          "
+        env:
+          CONTENT_ID: ${{ github.event.inputs.contentId }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: npx tsx scripts/run-content-upload.ts
 
       - name: Commit status update
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
