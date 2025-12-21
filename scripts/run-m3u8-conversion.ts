@@ -2,13 +2,13 @@
  * Pipeline Script: Run M3U8 Conversion
  *
  * Converts WAV audio files to M3U8 HLS streaming format.
- * TODO: Migrate M3U8AudioService to review-web (currently uses legacy V1 via dynamic import)
+ * Uses local M3U8AudioService (migrated from V1).
  *
  * Environment Variables:
  *   CONTENT_ID - Required, the content ID to process
  */
 
-import path from 'path';
+import { M3U8AudioService } from '@/lib/services/audio/M3U8AudioService';
 import { ContentManager } from '@/lib/ContentManager';
 
 async function main() {
@@ -22,24 +22,14 @@ async function main() {
   console.log(`Starting M3U8 conversion for: ${contentId}`);
 
   try {
-    // Dynamically import M3U8AudioService from FromFedToChain
-    const fromFedToChainPath = path.resolve(process.cwd(), '../FromFedToChain');
-    const servicePath = path.join(
-      fromFedToChainPath,
-      'src/services/M3U8AudioService.js'
-    );
-
-    const { M3U8AudioService } = await import(servicePath);
-
-    if (
-      !M3U8AudioService ||
-      typeof M3U8AudioService.convertToM3U8 !== 'function'
-    ) {
-      throw new Error('M3U8AudioService.convertToM3U8 is not available');
-    }
-
     const result = await M3U8AudioService.convertToM3U8(contentId);
     console.log('M3U8 conversion completed:', JSON.stringify(result, null, 2));
+
+    // Check if any language failed
+    const failures = Object.entries(result).filter(([, r]) => !r.success);
+    if (failures.length > 0) {
+      console.warn(`Warning: ${failures.length} language(s) failed M3U8 conversion`);
+    }
 
     // Update source content status to 'm3u8'
     await ContentManager.updateSourceStatus(contentId, 'm3u8');

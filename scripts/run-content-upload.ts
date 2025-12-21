@@ -2,13 +2,13 @@
  * Pipeline Script: Run Content Upload
  *
  * Uploads content JSON to Cloudflare R2 storage.
- * TODO: Migrate ContentPipelineService to review-web (currently uses legacy V1 via dynamic import)
+ * Uses local ContentPipelineService (migrated from V1).
  *
  * Environment Variables:
  *   CONTENT_ID - Required, the content ID to process
  */
 
-import path from 'path';
+import { ContentPipelineService } from '@/lib/services/pipeline/ContentPipelineService';
 import { ContentManager } from '@/lib/ContentManager';
 
 async function main() {
@@ -22,27 +22,14 @@ async function main() {
   console.log(`Starting content upload for: ${contentId}`);
 
   try {
-    // Dynamically import ContentPipelineService from FromFedToChain
-    const fromFedToChainPath = path.resolve(process.cwd(), '../FromFedToChain');
-    const servicePath = path.join(
-      fromFedToChainPath,
-      'src/services/ContentPipelineService.js'
-    );
-
-    const { ContentPipelineService } = await import(servicePath);
-
-    if (
-      !ContentPipelineService ||
-      typeof ContentPipelineService.uploadContentToCloudflare !== 'function'
-    ) {
-      throw new Error(
-        'ContentPipelineService.uploadContentToCloudflare is not available'
-      );
-    }
-
-    const result =
-      await ContentPipelineService.uploadContentToCloudflare(contentId);
+    const result = await ContentPipelineService.uploadContentToCloudflare(contentId);
     console.log('Content upload completed:', JSON.stringify(result, null, 2));
+
+    // Check if any language failed
+    const failures = Object.entries(result).filter(([, r]) => !r.success);
+    if (failures.length > 0) {
+      console.warn(`Warning: ${failures.length} language(s) failed content upload`);
+    }
 
     // Update source content status to 'content'
     await ContentManager.updateSourceStatus(contentId, 'content');

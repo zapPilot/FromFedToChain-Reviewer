@@ -86,13 +86,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Checkout FromFedToChain repository
-        uses: actions/checkout@v4
-        with:
-          repository: zapPilot/FromFedToChain
-          path: FromFedToChain
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check if audio generation already complete
         id: check_completion
         env:
@@ -103,36 +96,15 @@ jobs:
           FORCE_RUN="${{ github.event.inputs.start_stage == 'audio' }}"
           .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "audio" "$FORCE_RUN"
 
-      - name: Check FromFedToChain lockfile
+      - name: Setup Node.js
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        id: fromfed_lockfile
-        run: |
-          if [ -f "FromFedToChain/package-lock.json" ]; then
-            echo "has_lockfile=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_lockfile=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js (cached)
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: FromFedToChain/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Setup Node.js (no cache)
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies (FromFedToChain)
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        working-directory: ./FromFedToChain
-        run: npm ci
-
-      - name: Install dependencies (review-web)
+      - name: Install dependencies
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: npm ci
 
@@ -157,8 +129,7 @@ jobs:
 
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git add FromFedToChain/audio/
-          git add FromFedToChain/content/
+          git add audio/
           git diff --staged --quiet || git commit -m "Audio generation: $CONTENT_ID"
           git push
 
@@ -171,7 +142,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: audio-${{ github.event.inputs.contentId }}
-          path: FromFedToChain/audio/**/*.wav
+          path: audio/**/*.wav
           retention-days: 7
 
       - name: Update Supabase status (success)
@@ -219,13 +190,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Checkout FromFedToChain repository
-        uses: actions/checkout@v4
-        with:
-          repository: zapPilot/FromFedToChain
-          path: FromFedToChain
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check if M3U8 conversion already complete
         id: check_completion
         env:
@@ -236,29 +200,13 @@ jobs:
           FORCE_RUN="${{ github.event.inputs.start_stage == 'm3u8' }}"
           .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "m3u8" "$FORCE_RUN"
 
-      - name: Check FromFedToChain lockfile
+      - name: Setup Node.js
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        id: fromfed_lockfile
-        run: |
-          if [ -f "FromFedToChain/package-lock.json" ]; then
-            echo "has_lockfile=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_lockfile=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js (cached)
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: FromFedToChain/package-lock.json
-
-      - name: Setup Node.js (no cache)
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+          cache-dependency-path: package-lock.json
 
       - name: Install FFmpeg
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -269,7 +217,6 @@ jobs:
 
       - name: Install dependencies
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        working-directory: ./FromFedToChain
         run: npm ci
 
       - name: Convert to M3U8
@@ -287,8 +234,7 @@ jobs:
 
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git add FromFedToChain/audio/m3u8/
-          git add FromFedToChain/content/
+          git add audio/m3u8/
           git diff --staged --quiet || git commit -m "M3U8 conversion: $CONTENT_ID"
           git push
 
@@ -297,7 +243,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: m3u8-${{ github.event.inputs.contentId }}
-          path: FromFedToChain/audio/m3u8/**/*
+          path: audio/m3u8/**/*
           retention-days: 7
 
       - name: Update Supabase status (success)
@@ -345,13 +291,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Checkout FromFedToChain repository
-        uses: actions/checkout@v4
-        with:
-          repository: zapPilot/FromFedToChain
-          path: FromFedToChain
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check if Cloudflare upload already complete
         id: check_completion
         env:
@@ -362,29 +301,13 @@ jobs:
           FORCE_RUN="${{ github.event.inputs.start_stage == 'cloudflare' }}"
           .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "cloudflare" "$FORCE_RUN"
 
-      - name: Check FromFedToChain lockfile
+      - name: Setup Node.js
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        id: fromfed_lockfile
-        run: |
-          if [ -f "FromFedToChain/package-lock.json" ]; then
-            echo "has_lockfile=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_lockfile=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js (cached)
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: FromFedToChain/package-lock.json
-
-      - name: Setup Node.js (no cache)
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+          cache-dependency-path: package-lock.json
 
       - name: Install rclone
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -409,7 +332,6 @@ jobs:
 
       - name: Install dependencies
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        working-directory: ./FromFedToChain
         run: npm ci
 
       - name: Upload to Cloudflare R2
@@ -419,17 +341,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: npx tsx scripts/run-cloudflare-upload.ts
-
-      - name: Commit streaming URLs
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        run: |
-          CONTENT_ID="${{ github.event.inputs.contentId }}"
-
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git add FromFedToChain/content/
-          git diff --staged --quiet || git commit -m "Cloudflare R2 upload: $CONTENT_ID"
-          git push
 
       - name: Cleanup rclone config
         if: always()
@@ -480,13 +391,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Checkout FromFedToChain repository
-        uses: actions/checkout@v4
-        with:
-          repository: zapPilot/FromFedToChain
-          path: FromFedToChain
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check if content upload already complete
         id: check_completion
         env:
@@ -497,29 +401,13 @@ jobs:
           FORCE_RUN="${{ github.event.inputs.start_stage == 'content-upload' }}"
           .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "content-upload" "$FORCE_RUN"
 
-      - name: Check FromFedToChain lockfile
+      - name: Setup Node.js
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        id: fromfed_lockfile
-        run: |
-          if [ -f "FromFedToChain/package-lock.json" ]; then
-            echo "has_lockfile=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_lockfile=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Node.js (cached)
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: FromFedToChain/package-lock.json
-
-      - name: Setup Node.js (no cache)
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+          cache-dependency-path: package-lock.json
 
       - name: Install rclone
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -544,7 +432,6 @@ jobs:
 
       - name: Install dependencies
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        working-directory: ./FromFedToChain
         run: npm ci
 
       - name: Upload content JSON to R2
@@ -554,17 +441,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: npx tsx scripts/run-content-upload.ts
-
-      - name: Commit status update
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        run: |
-          CONTENT_ID="${{ github.event.inputs.contentId }}"
-
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git add FromFedToChain/content/
-          git diff --staged --quiet || git commit -m "Pipeline complete: $CONTENT_ID"
-          git push
 
       - name: Cleanup rclone config
         if: always()
