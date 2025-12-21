@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { GoogleTTSService } from './GoogleTTSService';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import {
   getAudioLanguages,
   getTTSConfig,
@@ -30,6 +30,8 @@ export class AudioService {
 
   // Generate WAV audio files only (no M3U8 or R2 upload)
   static async generateWavOnly(id: string): Promise<AudioGenerationResult> {
+    const supabase = getSupabaseAdmin();
+
     // Check source status first (zh-TW is the source language)
     const { data: sourceContent, error: sourceError } = await supabase
       .from('content')
@@ -67,13 +69,13 @@ export class AudioService {
       throw new Error(`Failed to fetch languages for content ${id}`);
     }
 
-    const availableLanguages = availableContent.map((row) => row.language);
+    const availableLanguages = availableContent.map((row: { language: string }) => row.language);
 
     // Get all languages that should have audio generated
     const audioLanguages = getAudioLanguages();
 
     // Find intersection of available languages and configured audio languages
-    const targetLanguages = availableLanguages.filter((lang) =>
+    const targetLanguages = availableLanguages.filter((lang: string) =>
       audioLanguages.includes(lang)
     );
 

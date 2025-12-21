@@ -23,18 +23,24 @@ vi.mock('@/lib/services/audio/GoogleTTSService', () => {
   };
 });
 
-// Mock Supabase
-const mockSupabaseQuery = {
-  select: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  single: vi.fn(),
-  update: vi.fn().mockReturnThis(),
-};
+const { mockSupabaseQuery } = vi.hoisted(() => {
+  const query: any = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    single: vi.fn(),
+    update: vi.fn(),
+  };
+  // Chain the mocks
+  query.select.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.update.mockReturnValue(query);
+  return { mockSupabaseQuery: query };
+});
 
 vi.mock('@/lib/supabase', () => ({
-  supabase: {
+  getSupabaseAdmin: vi.fn(() => ({
     from: vi.fn(() => mockSupabaseQuery),
-  } as unknown as SupabaseClient,
+  } as unknown as SupabaseClient)),
 }));
 
 // Mock language configuration
@@ -63,6 +69,16 @@ describe('AudioService', () => {
     vi.clearAllMocks();
     fsMock.default.mkdir.mockResolvedValue(undefined);
     fsMock.default.writeFile.mockResolvedValue(undefined);
+
+    // Ensure chaining works
+    mockSupabaseQuery.select.mockImplementation(() => mockSupabaseQuery);
+    mockSupabaseQuery.eq.mockImplementation(() => mockSupabaseQuery);
+    mockSupabaseQuery.update.mockImplementation(() => mockSupabaseQuery);
+
+    // Ensure chaining works
+    mockSupabaseQuery.select.mockImplementation(() => mockSupabaseQuery);
+    mockSupabaseQuery.eq.mockImplementation(() => mockSupabaseQuery);
+    mockSupabaseQuery.update.mockImplementation(() => mockSupabaseQuery);
 
     // Setup Google TTS mocks
     GoogleTTSServiceMock.prepareContentForTTS.mockImplementation((text: string) => text);
