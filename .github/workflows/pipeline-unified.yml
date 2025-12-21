@@ -122,17 +122,6 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: npx tsx scripts/run-audio-generation.ts
 
-      - name: Commit audio files
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        run: |
-          CONTENT_ID="${{ github.event.inputs.contentId }}"
-
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git add audio/
-          git diff --staged --quiet || git commit -m "Audio generation: $CONTENT_ID"
-          git push
-
       - name: Cleanup credentials
         if: always()
         run: rm -f /tmp/service-account.json
@@ -219,6 +208,13 @@ jobs:
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: npm ci
 
+      - name: Download audio artifacts
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: audio-${{ github.event.inputs.contentId }}
+          path: audio/
+
       - name: Convert to M3U8
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
@@ -227,17 +223,6 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: npx tsx scripts/run-m3u8-conversion.ts
 
-      - name: Commit M3U8 files
-        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
-        run: |
-          CONTENT_ID="${{ github.event.inputs.contentId }}"
-
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git add audio/m3u8/
-          git diff --staged --quiet || git commit -m "M3U8 conversion: $CONTENT_ID"
-          git push
-
       - name: Upload M3U8 artifacts
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         uses: actions/upload-artifact@v4
@@ -245,6 +230,10 @@ jobs:
           name: m3u8-${{ github.event.inputs.contentId }}
           path: audio/m3u8/**/*
           retention-days: 7
+
+      - name: Cleanup audio files
+        if: always()
+        run: rm -rf audio/
 
       - name: Update Supabase status (success)
         if: success() && steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -334,6 +323,13 @@ jobs:
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: npm ci
 
+      - name: Download M3U8 artifacts
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: m3u8-${{ github.event.inputs.contentId }}
+          path: audio/m3u8/
+
       - name: Upload to Cloudflare R2
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         env:
@@ -341,6 +337,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: npx tsx scripts/run-cloudflare-upload.ts
+
+      - name: Cleanup M3U8 files
+        if: always()
+        run: rm -rf audio/m3u8/
 
       - name: Cleanup rclone config
         if: always()
@@ -482,3 +482,21 @@ jobs:
               "status": "cloudflare",
               "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
             }'
+
+  cleanup-artifacts:
+    needs: content-upload
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete audio artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: audio-${{ github.event.inputs.contentId }}
+          failOnError: false
+
+      - name: Delete M3U8 artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: m3u8-${{ github.event.inputs.contentId }}
+          failOnError: false
+
