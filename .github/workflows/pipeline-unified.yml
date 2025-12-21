@@ -103,13 +103,29 @@ jobs:
           FORCE_RUN="${{ github.event.inputs.start_stage == 'audio' }}"
           .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "audio" "$FORCE_RUN"
 
-      - name: Setup Node.js
+      - name: Check FromFedToChain lockfile
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
+        id: fromfed_lockfile
+        run: |
+          if [ -f "FromFedToChain/package-lock.json" ]; then
+            echo "has_lockfile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_lockfile=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js (cached)
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Setup Node.js (no cache)
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install dependencies
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -238,13 +254,29 @@ jobs:
           FORCE_RUN="${{ github.event.inputs.start_stage == 'm3u8' }}"
           .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "m3u8" "$FORCE_RUN"
 
-      - name: Setup Node.js
+      - name: Check FromFedToChain lockfile
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
+        id: fromfed_lockfile
+        run: |
+          if [ -f "FromFedToChain/package-lock.json" ]; then
+            echo "has_lockfile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_lockfile=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js (cached)
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Setup Node.js (no cache)
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install FFmpeg
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -370,13 +402,29 @@ jobs:
           FORCE_RUN="${{ github.event.inputs.start_stage == 'cloudflare' }}"
           .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "cloudflare" "$FORCE_RUN"
 
-      - name: Setup Node.js
+      - name: Check FromFedToChain lockfile
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
+        id: fromfed_lockfile
+        run: |
+          if [ -f "FromFedToChain/package-lock.json" ]; then
+            echo "has_lockfile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_lockfile=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js (cached)
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Setup Node.js (no cache)
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install rclone
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
@@ -511,13 +559,29 @@ jobs:
           FORCE_RUN="${{ github.event.inputs.start_stage == 'content-upload' }}"
           .github/scripts/check-stage-completion.sh "${{ github.event.inputs.contentId }}" "content-upload" "$FORCE_RUN"
 
-      - name: Setup Node.js
+      - name: Check FromFedToChain lockfile
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
+        id: fromfed_lockfile
+        run: |
+          if [ -f "FromFedToChain/package-lock.json" ]; then
+            echo "has_lockfile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_lockfile=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js (cached)
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: FromFedToChain/package-lock.json
+
+      - name: Setup Node.js (no cache)
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true' && steps.fromfed_lockfile.outputs.has_lockfile != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install rclone
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
