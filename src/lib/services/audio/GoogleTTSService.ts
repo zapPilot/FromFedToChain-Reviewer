@@ -14,11 +14,12 @@ export class GoogleTTSService {
   private client: TextToSpeechClient;
 
   constructor() {
-    // Explicitly use service account file
-    const serviceAccountPath = path.resolve(
-      process.cwd(),
-      'service-account.json'
-    );
+    // Use GOOGLE_APPLICATION_CREDENTIALS env var if set (CI environment),
+    // otherwise fall back to local service-account.json file
+    const serviceAccountPath =
+      process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+      path.resolve(process.cwd(), 'service-account.json');
+
     this.client = new TextToSpeechClient({
       keyFilename: serviceAccountPath,
       // projectId will be automatically inferred from service account file
