@@ -32,58 +32,61 @@ check_translation_complete() {
 }
 
 check_audio_complete() {
-  # Check if ANY language variant has status >= wav
-  COUNT=$(curl -s "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&status=in.(wav,m3u8,cloudflare,content,social)&select=id&limit=1" \
+  # Check source language (zh-TW) status - this is what the pipeline updates
+  STATUS=$(curl -s "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW&select=status" \
     -H "apikey: ${SUPABASE_KEY}" \
-    -H "Authorization: Bearer ${SUPABASE_KEY}" | jq 'length')
+    -H "Authorization: Bearer ${SUPABASE_KEY}" | jq -r '.[0].status // "none"')
 
-  if [ "$COUNT" -gt 0 ]; then
-    echo "✅ Audio generation complete"
+  if [[ "$STATUS" =~ ^(wav|m3u8|cloudflare|content|social)$ ]]; then
+    echo "✅ Audio generation complete (source status=$STATUS)"
     echo "SKIP_STAGE=true" >> $GITHUB_OUTPUT
   else
-    echo "▶️  Audio generation needed"
+    echo "▶️  Audio generation needed (source status=$STATUS)"
     echo "SKIP_STAGE=false" >> $GITHUB_OUTPUT
   fi
 }
 
 check_m3u8_complete() {
-  COUNT=$(curl -s "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&status=in.(m3u8,cloudflare,content,social)&select=id&limit=1" \
+  # Check source language (zh-TW) status - this is what the pipeline updates
+  STATUS=$(curl -s "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW&select=status" \
     -H "apikey: ${SUPABASE_KEY}" \
-    -H "Authorization: Bearer ${SUPABASE_KEY}" | jq 'length')
+    -H "Authorization: Bearer ${SUPABASE_KEY}" | jq -r '.[0].status // "none"')
 
-  if [ "$COUNT" -gt 0 ]; then
-    echo "✅ M3U8 conversion complete"
+  if [[ "$STATUS" =~ ^(m3u8|cloudflare|content|social)$ ]]; then
+    echo "✅ M3U8 conversion complete (source status=$STATUS)"
     echo "SKIP_STAGE=true" >> $GITHUB_OUTPUT
   else
-    echo "▶️  M3U8 conversion needed"
+    echo "▶️  M3U8 conversion needed (source status=$STATUS)"
     echo "SKIP_STAGE=false" >> $GITHUB_OUTPUT
   fi
 }
 
 check_cloudflare_complete() {
-  COUNT=$(curl -s "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&status=in.(cloudflare,content,social)&select=id&limit=1" \
+  # Check source language (zh-TW) status - this is what the pipeline updates
+  STATUS=$(curl -s "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW&select=status" \
     -H "apikey: ${SUPABASE_KEY}" \
-    -H "Authorization: Bearer ${SUPABASE_KEY}" | jq 'length')
+    -H "Authorization: Bearer ${SUPABASE_KEY}" | jq -r '.[0].status // "none"')
 
-  if [ "$COUNT" -gt 0 ]; then
-    echo "✅ Cloudflare upload complete"
+  if [[ "$STATUS" =~ ^(cloudflare|content|social)$ ]]; then
+    echo "✅ Cloudflare upload complete (source status=$STATUS)"
     echo "SKIP_STAGE=true" >> $GITHUB_OUTPUT
   else
-    echo "▶️  Cloudflare upload needed"
+    echo "▶️  Cloudflare upload needed (source status=$STATUS)"
     echo "SKIP_STAGE=false" >> $GITHUB_OUTPUT
   fi
 }
 
 check_content_upload_complete() {
-  COUNT=$(curl -s "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&status=in.(content,social)&select=id&limit=1" \
+  # Check source language (zh-TW) status - this is what the pipeline updates
+  STATUS=$(curl -s "${SUPABASE_URL}/rest/v1/content?id=eq.$CONTENT_ID&language=eq.zh-TW&select=status" \
     -H "apikey: ${SUPABASE_KEY}" \
-    -H "Authorization: Bearer ${SUPABASE_KEY}" | jq 'length')
+    -H "Authorization: Bearer ${SUPABASE_KEY}" | jq -r '.[0].status // "none"')
 
-  if [ "$COUNT" -gt 0 ]; then
-    echo "✅ Content upload complete"
+  if [[ "$STATUS" =~ ^(content|social)$ ]]; then
+    echo "✅ Content upload complete (source status=$STATUS)"
     echo "SKIP_STAGE=true" >> $GITHUB_OUTPUT
   else
-    echo "▶️  Content upload needed"
+    echo "▶️  Content upload needed (source status=$STATUS)"
     echo "SKIP_STAGE=false" >> $GITHUB_OUTPUT
   fi
 }
