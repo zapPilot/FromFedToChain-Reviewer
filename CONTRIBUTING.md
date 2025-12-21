@@ -148,7 +148,7 @@ chore: upgrade dependencies
 
 1. **Server Components First**: Use Server Components for data fetching, Client Components for interactivity
 2. **API Routes**: RESTful endpoints in `src/app/api/`
-3. **Content Manager**: Reads from Git (FromFedToChain repo)
+3. **Content Manager**: Reads from local content directory or Supabase
 4. **Status Tracking**: Supabase database (review state, pipeline progress)
 
 ## Testing

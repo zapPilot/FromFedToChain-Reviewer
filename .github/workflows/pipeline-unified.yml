@@ -127,9 +127,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Install dependencies (FromFedToChain)
         if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         working-directory: ./FromFedToChain
+        run: npm ci
+
+      - name: Install dependencies (review-web)
+        if: steps.check_completion.outputs.SKIP_STAGE != 'true'
         run: npm ci
 
       - name: Setup Google Cloud credentials

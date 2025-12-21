@@ -458,7 +458,7 @@ A: Yes, modify the workflow files to use AWS S3, Azure Blob, or Google Cloud Sto
 ## Support
 
 - 📝 [GitHub Issues](https://github.com/YOUR_USERNAME/all-weather-protocol/issues)
-- 📖 [Main Documentation](../FromFedToChain/CLAUDE.md)
+- 📖 [Main Documentation](../../README.md)
 - 🔧 [Workflow Logs](https://github.com/YOUR_USERNAME/all-weather-protocol/actions)
 
 ## Next Steps

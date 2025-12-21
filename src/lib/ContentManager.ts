@@ -17,8 +17,7 @@ import { getSupabaseAdmin } from './supabase';
  */
 export class ContentManager {
   // Legacy: Content directory path (optional, for local development)
-  static CONTENT_DIR =
-    process.env.CONTENT_DIR || process.cwd() + '/../FromFedToChain/content';
+  static CONTENT_DIR = process.env.CONTENT_DIR || process.cwd() + '/content';
 
   /**
    * Read content by ID and language from Supabase

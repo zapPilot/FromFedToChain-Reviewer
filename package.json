@@ -20,7 +20,7 @@
     "precommit:test": "npm run type-check && npm run test:node",
     "migrate:content": "tsx scripts/migrate-content-to-supabase.ts"
   },
-  "description": "Web-based review interface for FromFedToChain content",
+  "description": "Web-based review interface for content management with integrated translation and audio processing pipeline",
   "dependencies": {
     "@google-cloud/text-to-speech": "^6.4.0",
     "@google-cloud/translate": "^9.3.0",

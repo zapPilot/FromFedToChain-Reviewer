@@ -1,4 +1,4 @@
-// Content types based on ContentSchema from FromFedToChain
+// Content types based on ContentSchema (migrated from V1)
 
 export type Language = 'zh-TW' | 'en-US' | 'ja-JP';
 

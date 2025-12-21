@@ -1,6 +1,6 @@
 # Review Web - Content Review Interface
 
-Modern web-based review interface for the FromFedToChain content management system with integrated translation and audio processing pipeline.
+Modern web-based review interface for content management with integrated translation and audio processing pipeline.
 
 ## Quick Start
 
@@ -17,7 +17,7 @@ npm run dev
 open http://localhost:3000
 ```
 
-That's it! The app will use the default content directory (`../FromFedToChain/content`).
+That's it! The app will use the default content directory (`./content`).
 
 > **Need custom setup?** See [Setup](#setup) below or check [docs/setup/pipeline.md](docs/setup/pipeline.md) for full pipeline configuration.
 
@@ -50,25 +50,24 @@ npm install
 
 ### 2. Configure Content Directory
 
-The app needs access to the `content/` directory from the FromFedToChain repository.
+The app stores content in the local `content/` directory or Supabase.
 
-**Option A: Environment Variable (Recommended)**
+**Option A: Environment Variable (Optional)**
 
-Create a `.env.local` file:
+Create a `.env.local` file to customize the content directory:
 
 ```env
-CONTENT_DIR=/absolute/path/to/FromFedToChain/content
+CONTENT_DIR=/absolute/path/to/content
 ```
 
-**Option B: Default Relative Path**
+**Option B: Default Path**
 
-By default, the app assumes FromFedToChain is a sibling directory:
+By default, the app uses `./content` in the review-web directory:
 
 ```
-/path/to/all-weather-protocol/
-├── FromFedToChain/
-│   └── content/
-└── review-web/
+/path/to/review-web/
+├── content/
+└── src/
 ```
 
 ### 3. Run Development Server
@@ -175,8 +174,8 @@ Choose your deployment platform:
 
 ## Contributing
 
-This is part of the FromFedToChain project. See the main repository for contribution guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## License
 
-Same as FromFedToChain project.
+MIT License
