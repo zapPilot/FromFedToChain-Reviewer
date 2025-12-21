@@ -130,11 +130,10 @@ export class CloudflareR2Service {
         // Construct public URL
         const r2Url = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}/audio.m3u8`;
 
-        // Update database with R2 URL
+        // Update database status to 'cloudflare'
         const { error: updateError } = await supabase
           .from('content')
           .update({
-            streaming_url: r2Url,
             status: 'cloudflare',
           })
           .eq('id', contentId)
