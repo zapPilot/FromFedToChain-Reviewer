@@ -37,10 +37,10 @@ export class ContentPipelineService {
   ): Promise<ContentUploadResult> {
     const supabase = getSupabaseAdmin();
 
-    // Get all content records ready for upload
+    // Get all content records ready for upload - fetch ALL fields for V1 compatible JSON
     const { data: contentRecords, error: fetchError } = await supabase
       .from('content')
-      .select('id, language, category, content, title, status')
+      .select('*')
       .eq('id', contentId);
 
     if (fetchError || !contentRecords) {
@@ -68,11 +68,9 @@ export class ContentPipelineService {
     const results: ContentUploadResult = {};
 
     for (const record of eligibleRecords) {
-      const { language, category, content, title } = record as {
+      const { language, category } = record as {
         language: string;
         category: string;
-        content: string;
-        title: string;
       };
 
       try {
@@ -87,18 +85,36 @@ export class ContentPipelineService {
         );
         await fs.mkdir(tempDir, { recursive: true });
 
-        // Derive streaming URL from content metadata
-        const streamingUrl = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}/audio.m3u8`;
-
-        // Build content JSON structure
-        const contentJson = {
-          id: contentId,
+        // List segment files from R2 to build segments array (matches V1 format)
+        const segmentUrls = await this.listR2Segments(
           language,
           category,
-          title,
-          content,
-          streamingUrl,
-          updatedAt: new Date().toISOString(),
+          contentId
+        );
+
+        // Derive streaming URL for M3U8 playlist
+        const m3u8Url = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}/audio.m3u8`;
+
+        // Build complete V1-compatible content JSON structure (exact match)
+        const contentJson = {
+          id: record.id,
+          status: record.status,
+          category: record.category,
+          date: record.date,
+          language: record.language,
+          title: record.title,
+          content: record.content,
+          references: record.references || [],
+          framework: record.framework || '',
+          knowledge_concepts_used: record.knowledge_concepts_used || [],
+          audio_file: record.audio_file || null,
+          social_hook: record.social_hook || null,
+          feedback: record.feedback || { content_review: null },
+          updated_at: new Date().toISOString(),
+          streaming_urls: {
+            m3u8: m3u8Url,
+            segments: segmentUrls,
+          },
         };
 
         // Write content JSON to temp file
@@ -165,5 +181,57 @@ export class ContentPipelineService {
     category: string
   ): string {
     return `${R2_PUBLIC_URL}/content/${language}/${category}/${contentId}.json`;
+  }
+
+  /**
+   * List segment files from R2 for a content item (matches V1 format)
+   * @param language - Language code
+   * @param category - Content category
+   * @param contentId - Content ID
+   * @returns Array of segment URLs sorted by segment number
+   */
+  static async listR2Segments(
+    language: string,
+    category: string,
+    contentId: string
+  ): Promise<string[]> {
+    const r2Path = `r2:${R2_BUCKET}/audio/${language}/${category}/${contentId}/`;
+
+    try {
+      // Use rclone ls to list files in the R2 directory
+      const result = await executeCommand('rclone', ['ls', r2Path]);
+
+      if (!result.success) {
+        console.warn(`⚠️ Could not list R2 segments: ${result.error}`);
+        return [];
+      }
+
+      // Parse rclone ls output: "  size filename" format
+      const lines = (result.output || '').split('\n').filter((l) => l.trim());
+      const segmentFiles: string[] = [];
+
+      for (const line of lines) {
+        const match = line.match(/^\s*\d+\s+(.+\.ts)$/);
+        if (match) {
+          segmentFiles.push(match[1]);
+        }
+      }
+
+      // Sort segments by number (segment000.ts, segment001.ts, etc.)
+      segmentFiles.sort((a, b) => {
+        const numA = parseInt(a.match(/(\d+)/)?.[1] || '0');
+        const numB = parseInt(b.match(/(\d+)/)?.[1] || '0');
+        return numA - numB;
+      });
+
+      // Build full URLs
+      const baseUrl = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}`;
+      return segmentFiles.map((f) => `${baseUrl}/${f}`);
+    } catch (error) {
+      console.warn(
+        `⚠️ Error listing R2 segments: ${error instanceof Error ? error.message : error}`
+      );
+      return [];
+    }
   }
 }
