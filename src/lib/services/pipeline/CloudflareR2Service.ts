@@ -24,9 +24,10 @@ interface R2UploadResult {
   };
 }
 
-// R2 configuration from environment
-const R2_BUCKET = process.env.R2_BUCKET || 'audio-streaming';
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://audio.example.com';
+// R2 configuration (migrated from V1 CloudflareR2Service.js)
+const R2_BUCKET = 'fromfedtochain';
+const R2_PUBLIC_URL =
+  'https://fromfedtochain.1352ed9cb1e236fe232f67ff3a8e9850.r2.cloudflarestorage.com';
 
 export class CloudflareR2Service {
   static M3U8_DIR = path.join(PATHS.AUDIO_ROOT, 'm3u8');
