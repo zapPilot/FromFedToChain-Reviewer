@@ -93,7 +93,7 @@ export class ContentPipelineService {
         );
 
         // Derive streaming URL for M3U8 playlist
-        const m3u8Url = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}/audio.m3u8`;
+        const m3u8Url = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}/playlist.m3u8`;
 
         // Build complete V1-compatible content JSON structure (exact match)
         const contentJson = {

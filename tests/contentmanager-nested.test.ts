@@ -236,13 +236,13 @@ describe('ContentManager nested structure', () => {
   describe('Audio/social helpers', () => {
     it('persists audio metadata on update', async () => {
       await ContentManager.addAudio(fixtureId, 'zh-TW', '/audio/path.wav', {
-        m3u8: 'https://example.com/audio.m3u8',
+        m3u8: 'https://example.com/playlist.m3u8',
       });
 
       const updated = await ContentManager.readSource(fixtureId);
       expect(updated.audio_file).toBe('/audio/path.wav');
       expect(updated.streaming_urls?.m3u8).toBe(
-        'https://example.com/audio.m3u8'
+        'https://example.com/playlist.m3u8'
       );
     });
 

@@ -84,7 +84,7 @@ export class M3U8AudioService {
                 await fs.mkdir(outputDir, { recursive: true });
 
                 // Output paths
-                const m3u8Path = path.join(outputDir, 'audio.m3u8');
+                const m3u8Path = path.join(outputDir, 'playlist.m3u8');
                 const segmentPattern = path.join(outputDir, 'segment_%03d.ts');
 
                 // Build FFmpeg command for HLS conversion
@@ -147,6 +147,6 @@ export class M3U8AudioService {
      * Get M3U8 output path for a content item
      */
     static getM3U8Path(contentId: string, language: string, category: string): string {
-        return path.join(this.M3U8_DIR, language, category, contentId, 'audio.m3u8');
+        return path.join(this.M3U8_DIR, language, category, contentId, 'playlist.m3u8');
     }
 }

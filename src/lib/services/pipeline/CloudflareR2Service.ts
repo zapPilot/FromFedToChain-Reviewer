@@ -129,7 +129,7 @@ export class CloudflareR2Service {
         }
 
         // Construct public URL
-        const r2Url = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}/audio.m3u8`;
+        const r2Url = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}/playlist.m3u8`;
 
         // Update database status to 'cloudflare'
         const { error: updateError } = await supabase
@@ -172,6 +172,6 @@ export class CloudflareR2Service {
     language: string,
     category: string
   ): string {
-    return `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}/audio.m3u8`;
+    return `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}/playlist.m3u8`;
   }
 }
