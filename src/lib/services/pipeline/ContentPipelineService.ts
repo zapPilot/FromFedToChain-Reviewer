@@ -102,21 +102,14 @@ export class ContentPipelineService {
         };
 
         // Write content JSON to temp file
-        const jsonPath = path.join(tempDir, 'content.json');
+        const jsonPath = path.join(tempDir, `${contentId}.json`);
         await fs.writeFile(jsonPath, JSON.stringify(contentJson, null, 2));
 
-        // R2 destination
-        const r2Destination = `r2:${R2_BUCKET}/content/${language}/${category}/${contentId}/`;
+        // R2 destination - use copyto for exact path (no folder creation)
+        const r2Destination = `r2:${R2_BUCKET}/content/${language}/${category}/${contentId}.json`;
 
-        // Build rclone command
-        const rcloneArgs = [
-          'copy',
-          tempDir,
-          r2Destination,
-          '--include',
-          '*.json',
-          '-v',
-        ];
+        // Build rclone command - use 'copyto' instead of 'copy' to avoid folder creation
+        const rcloneArgs = ['copyto', jsonPath, r2Destination, '-v'];
 
         // Execute rclone
         const result = await executeCommand('rclone', rcloneArgs);
@@ -126,7 +119,7 @@ export class ContentPipelineService {
         }
 
         // Construct public URL
-        const contentUrl = `${R2_PUBLIC_URL}/content/${language}/${category}/${contentId}/content.json`;
+        const contentUrl = `${R2_PUBLIC_URL}/content/${language}/${category}/${contentId}.json`;
 
         // Update database status to 'content'
         const { error: updateError } = await supabase
@@ -171,6 +164,6 @@ export class ContentPipelineService {
     language: string,
     category: string
   ): string {
-    return `${R2_PUBLIC_URL}/content/${language}/${category}/${contentId}/content.json`;
+    return `${R2_PUBLIC_URL}/content/${language}/${category}/${contentId}.json`;
   }
 }
