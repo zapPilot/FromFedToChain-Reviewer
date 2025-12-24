@@ -112,11 +112,10 @@ export class M3U8AudioService {
                 const files = await fs.readdir(outputDir);
                 const segmentCount = files.filter((f) => f.endsWith('.ts')).length;
 
-                // Update database with M3U8 path
+                // Update database status to 'm3u8' (m3u8 files are stored locally, not in DB)
                 const { error: updateError } = await supabase
                     .from('content')
                     .update({
-                        m3u8_file: m3u8Path,
                         status: 'm3u8',
                     })
                     .eq('id', contentId)
