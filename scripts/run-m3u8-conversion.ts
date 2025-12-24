@@ -28,7 +28,9 @@ async function main() {
     // Check if any language failed
     const failures = Object.entries(result).filter(([, r]) => !r.success);
     if (failures.length > 0) {
-      console.warn(`Warning: ${failures.length} language(s) failed M3U8 conversion`);
+      console.warn(
+        `Warning: ${failures.length} language(s) failed M3U8 conversion`
+      );
     }
 
     // Update source content status to 'm3u8'

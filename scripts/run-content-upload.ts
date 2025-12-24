@@ -22,13 +22,16 @@ async function main() {
   console.log(`Starting content upload for: ${contentId}`);
 
   try {
-    const result = await ContentPipelineService.uploadContentToCloudflare(contentId);
+    const result =
+      await ContentPipelineService.uploadContentToCloudflare(contentId);
     console.log('Content upload completed:', JSON.stringify(result, null, 2));
 
     // Check if any language failed
     const failures = Object.entries(result).filter(([, r]) => !r.success);
     if (failures.length > 0) {
-      console.warn(`Warning: ${failures.length} language(s) failed content upload`);
+      console.warn(
+        `Warning: ${failures.length} language(s) failed content upload`
+      );
     }
 
     // Update source content status to 'content'
