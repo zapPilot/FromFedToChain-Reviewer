@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { GoogleTTSService } from './GoogleTTSService';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { getErrorMessage } from '@/lib/utils/error-handler';
 import {
   getAudioLanguages,
   getTTSConfig,
@@ -161,8 +162,7 @@ export class AudioService {
         results[language] = { success: true, audioPath };
         console.log(`✅ WAV audio generated: ${audioPath}`);
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = getErrorMessage(error);
         console.error(
           `❌ WAV generation failed for ${language}: ${errorMessage}`
         );

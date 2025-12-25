@@ -9,6 +9,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { executeCommand } from '@/lib/utils/command-executor';
+import { getErrorMessage } from '@/lib/utils/error-handler';
 import {
   getAudioLanguages,
   shouldUploadToR2,
@@ -154,8 +155,7 @@ export class CloudflareR2Service {
           `✅ Uploaded to R2: ${r2Url} (${uploadableFiles.length} files)`
         );
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = getErrorMessage(error);
         console.error(`❌ R2 upload failed for ${language}: ${errorMessage}`);
         results[language] = { success: false, error: errorMessage };
       }

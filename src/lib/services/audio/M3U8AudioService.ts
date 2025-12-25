@@ -9,6 +9,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { executeCommand } from '@/lib/utils/command-executor';
+import { getErrorMessage } from '@/lib/utils/error-handler';
 import {
     getAudioLanguages,
     getM3U8Config,
@@ -133,7 +134,7 @@ export class M3U8AudioService {
 
                 console.log(`✅ M3U8 created: ${m3u8Path} (${segmentCount} segments)`);
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                const errorMessage = getErrorMessage(error);
                 console.error(`❌ M3U8 conversion failed for ${language}: ${errorMessage}`);
                 results[language] = { success: false, error: errorMessage };
             }

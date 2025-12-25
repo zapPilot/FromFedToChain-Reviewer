@@ -9,6 +9,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { executeCommand } from '@/lib/utils/command-executor';
+import { getErrorMessage } from '@/lib/utils/error-handler';
 import { getAudioLanguages, PATHS } from '../../../../config/languages';
 
 interface ContentUploadResult {
@@ -160,8 +161,7 @@ export class ContentPipelineService {
 
         console.log(`✅ Content uploaded: ${contentUrl}`);
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = getErrorMessage(error);
         console.error(
           `❌ Content upload failed for ${language}: ${errorMessage}`
         );
@@ -228,9 +228,7 @@ export class ContentPipelineService {
       const baseUrl = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}`;
       return segmentFiles.map((f) => `${baseUrl}/${f}`);
     } catch (error) {
-      console.warn(
-        `⚠️ Error listing R2 segments: ${error instanceof Error ? error.message : error}`
-      );
+      console.warn(`⚠️ Error listing R2 segments: ${getErrorMessage(error)}`);
       return [];
     }
   }
