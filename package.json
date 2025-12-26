@@ -18,7 +18,8 @@
     "test:node:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
     "precommit:test": "npm run type-check && npm run test:node",
-    "migrate:content": "tsx scripts/migrate-content-to-supabase.ts"
+    "migrate:content": "tsx scripts/migrate-content-to-supabase.ts",
+    "drafts:upload": "tsx scripts/upload-drafts.ts"
   },
   "description": "Web-based review interface for content management with integrated translation and audio processing pipeline",
   "dependencies": {
@@ -48,9 +49,14 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^3.2.4",
     "eslint-config-prettier": "^9.1.0",
     "husky": "^9.0.11",
+    "jsdom": "^27.0.1",
     "lint-staged": "^15.2.9",
     "prettier": "^3.6.2",
     "tsx": "^4.21.0",

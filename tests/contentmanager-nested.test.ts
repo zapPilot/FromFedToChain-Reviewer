@@ -12,14 +12,11 @@ const fixtureId = '2025-07-01-test-content';
 
 describe('ContentManager nested structure', () => {
   let tempDir: string;
-  let originalDir: string;
   let mockSupabase: any;
   let sourceContent: any; // Store reference for mocks
 
   beforeEach(async () => {
     tempDir = await TestUtils.createTempDir();
-    originalDir = ContentManager.CONTENT_DIR;
-    ContentManager.CONTENT_DIR = tempDir;
 
     // Create source content first
     sourceContent = TestUtils.createContent({
@@ -131,7 +128,6 @@ describe('ContentManager nested structure', () => {
   });
 
   afterEach(async () => {
-    ContentManager.CONTENT_DIR = originalDir;
     await TestUtils.cleanupTempDir(tempDir);
     vi.clearAllMocks();
   });

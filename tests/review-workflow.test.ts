@@ -12,14 +12,11 @@ const CONTENT_ID = '2025-06-30-review-test';
 
 describe('Review workflow', () => {
   let tempDir: string;
-  let originalDir: string;
   let mockSupabase: any;
   let testContent: any;
 
   beforeEach(async () => {
     tempDir = await TestUtils.createTempDir();
-    originalDir = ContentManager.CONTENT_DIR;
-    ContentManager.CONTENT_DIR = tempDir;
 
     const draft = TestUtils.createContent({ id: CONTENT_ID, status: 'draft' });
     await TestUtils.writeContentFile(tempDir, draft);
@@ -52,7 +49,6 @@ describe('Review workflow', () => {
   });
 
   afterEach(async () => {
-    ContentManager.CONTENT_DIR = originalDir;
     await TestUtils.cleanupTempDir(tempDir);
     vi.clearAllMocks();
   });

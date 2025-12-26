@@ -41,3 +41,12 @@ next-env.d.ts
 # Claude hooks dependencies
 .claude/hooks/node_modules/
 .claude/tsc-cache
+
+# Content drafts (not committed to git)
+/content-drafts/*.json
+/content-drafts/failed/
+/content-drafts/upload-log-*.json
+
+# Keep directory structure
+!/content-drafts/.gitkeep
+!/content-drafts/README.md

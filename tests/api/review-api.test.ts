@@ -16,13 +16,10 @@ vi.mock('@/lib/supabase', () => ({
 
 describe('Review API Routes', () => {
   let tempDir: string;
-  let originalDir: string;
   let mockSupabase: any;
 
   beforeEach(async () => {
     tempDir = await TestUtils.createTempDir();
-    originalDir = ContentManager.CONTENT_DIR;
-    ContentManager.CONTENT_DIR = tempDir;
 
     // Mock Supabase admin client
     mockSupabase = {
@@ -41,7 +38,6 @@ describe('Review API Routes', () => {
   });
 
   afterEach(async () => {
-    ContentManager.CONTENT_DIR = originalDir;
     await TestUtils.cleanupTempDir(tempDir);
     vi.clearAllMocks();
   });

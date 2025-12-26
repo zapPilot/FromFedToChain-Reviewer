@@ -25,14 +25,11 @@ import { NextRequest } from 'next/server';
  */
 describe('Review API Integration - Client to Route', () => {
   let tempDir: string;
-  let originalDir: string;
   let mockSupabase: any;
   let originalFetch: typeof global.fetch;
 
   beforeEach(async () => {
     tempDir = await TestUtils.createTempDir();
-    originalDir = ContentManager.CONTENT_DIR;
-    ContentManager.CONTENT_DIR = tempDir;
 
     // Mock Supabase
     mockSupabase = {
@@ -54,7 +51,6 @@ describe('Review API Integration - Client to Route', () => {
   });
 
   afterEach(async () => {
-    ContentManager.CONTENT_DIR = originalDir;
     await TestUtils.cleanupTempDir(tempDir);
     global.fetch = originalFetch;
     vi.clearAllMocks();

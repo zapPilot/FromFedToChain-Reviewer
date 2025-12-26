@@ -12,13 +12,9 @@ import { getSupabaseAdmin } from './supabase';
 /**
  * ContentManager - Manages content operations using Supabase as primary storage
  *
- * Migrated from filesystem-based storage to Supabase database.
  * All content is stored in review_web.content table with composite key (id, language).
  */
 export class ContentManager {
-  // Legacy: Content directory path (optional, for local development)
-  static CONTENT_DIR = process.env.CONTENT_DIR || process.cwd() + '/content';
-
   /**
    * Read content by ID and language from Supabase
    */
