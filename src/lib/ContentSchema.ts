@@ -17,7 +17,8 @@ export class ContentSchema {
     title: string,
     content: string,
     references: string[] = [],
-    framework = ''
+    framework = '',
+    knowledge_concepts_used: string[] = []
   ): ContentItem {
     return {
       id,
@@ -31,7 +32,7 @@ export class ContentSchema {
       framework,
       audio_file: null,
       social_hook: null,
-      knowledge_concepts_used: [],
+      knowledge_concepts_used: knowledge_concepts_used || [],
       feedback: {
         content_review: null,
       },

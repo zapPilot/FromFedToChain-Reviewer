@@ -69,7 +69,8 @@ export class ContentManager {
     title: string,
     content: string,
     references: string[] = [],
-    framework = ''
+    framework = '',
+    knowledge_concepts_used: string[] = []
   ): Promise<ContentItem> {
     const contentData = ContentSchema.createContent(
       id,
@@ -78,7 +79,8 @@ export class ContentManager {
       title,
       content,
       references,
-      framework
+      framework,
+      knowledge_concepts_used
     );
 
     ContentSchema.validate(contentData);
@@ -112,7 +114,8 @@ export class ContentManager {
     title: string,
     content: string,
     references: string[] = [],
-    framework = ''
+    framework = '',
+    knowledge_concepts_used: string[] = []
   ) {
     return this.create(
       id,
@@ -121,7 +124,8 @@ export class ContentManager {
       title,
       content,
       references,
-      framework
+      framework,
+      knowledge_concepts_used
     );
   }
 

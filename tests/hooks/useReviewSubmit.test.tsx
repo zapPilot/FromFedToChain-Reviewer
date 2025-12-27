@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useReviewSubmit } from '@/hooks/useContentDetail';
 import { apiClient } from '@/lib/api-client';
 import { ReviewSubmitRequest } from '@/types/content';
+import { TestUtils } from '../setup';
 
 // Mock the API client
 vi.mock('@/lib/api-client', () => ({
@@ -31,7 +32,11 @@ describe('useReviewSubmit', () => {
 
   describe('Mutation Execution', () => {
     it('submits review with correct payload', async () => {
-      const mockResponse = { success: true };
+      const mockResponse = {
+        success: true,
+        content: TestUtils.createContent(),
+        message: 'Review submitted successfully',
+      };
       vi.mocked(apiClient.submitReview).mockResolvedValue(mockResponse);
 
       const { result } = renderHook(() => useReviewSubmit(), { wrapper });
@@ -82,11 +87,19 @@ describe('useReviewSubmit', () => {
       expect(result.current.isError).toBe(false);
 
       // Cleanup
-      resolveMutation({ success: true });
+      resolveMutation({
+        success: true,
+        content: TestUtils.createContent(),
+        message: 'Review submitted successfully',
+      });
     });
 
     it('calls onSuccess callback', async () => {
-      const mockResponse = { success: true };
+      const mockResponse = {
+        success: true,
+        content: TestUtils.createContent(),
+        message: 'Review submitted successfully',
+      };
       vi.mocked(apiClient.submitReview).mockResolvedValue(mockResponse);
       const onSuccessMock = vi.fn();
 
@@ -116,7 +129,11 @@ describe('useReviewSubmit', () => {
     });
 
     it('submits accept review without feedback', async () => {
-      const mockResponse = { success: true };
+      const mockResponse = {
+        success: true,
+        content: TestUtils.createContent(),
+        message: 'Review submitted successfully',
+      };
       vi.mocked(apiClient.submitReview).mockResolvedValue(mockResponse);
 
       const { result } = renderHook(() => useReviewSubmit(), { wrapper });
@@ -140,7 +157,11 @@ describe('useReviewSubmit', () => {
     });
 
     it('submits reject review with feedback', async () => {
-      const mockResponse = { success: true };
+      const mockResponse = {
+        success: true,
+        content: TestUtils.createContent(),
+        message: 'Review submitted successfully',
+      };
       vi.mocked(apiClient.submitReview).mockResolvedValue(mockResponse);
 
       const { result } = renderHook(() => useReviewSubmit(), { wrapper });
@@ -164,7 +185,11 @@ describe('useReviewSubmit', () => {
     });
 
     it('includes category update in submission', async () => {
-      const mockResponse = { success: true };
+      const mockResponse = {
+        success: true,
+        content: TestUtils.createContent(),
+        message: 'Review submitted successfully',
+      };
       vi.mocked(apiClient.submitReview).mockResolvedValue(mockResponse);
 
       const { result } = renderHook(() => useReviewSubmit(), { wrapper });
@@ -190,7 +215,11 @@ describe('useReviewSubmit', () => {
 
   describe('Cache Invalidation', () => {
     it('invalidates review-queue cache after submit', async () => {
-      const mockResponse = { success: true };
+      const mockResponse = {
+        success: true,
+        content: TestUtils.createContent(),
+        message: 'Review submitted successfully',
+      };
       vi.mocked(apiClient.submitReview).mockResolvedValue(mockResponse);
 
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
@@ -213,7 +242,11 @@ describe('useReviewSubmit', () => {
     });
 
     it('invalidates review-stats cache after submit', async () => {
-      const mockResponse = { success: true };
+      const mockResponse = {
+        success: true,
+        content: TestUtils.createContent(),
+        message: 'Review submitted successfully',
+      };
       vi.mocked(apiClient.submitReview).mockResolvedValue(mockResponse);
 
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
@@ -234,7 +267,11 @@ describe('useReviewSubmit', () => {
     });
 
     it('triggers refetch of affected queries', async () => {
-      const mockResponse = { success: true };
+      const mockResponse = {
+        success: true,
+        content: TestUtils.createContent(),
+        message: 'Review submitted successfully',
+      };
       vi.mocked(apiClient.submitReview).mockResolvedValue(mockResponse);
 
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
@@ -370,8 +407,16 @@ describe('useReviewSubmit', () => {
   describe('Mutation State', () => {
     it('resets state between mutations', async () => {
       vi.mocked(apiClient.submitReview)
-        .mockResolvedValueOnce({ success: true })
-        .mockResolvedValueOnce({ success: true });
+        .mockResolvedValueOnce({
+          success: true,
+          content: TestUtils.createContent(),
+          message: 'Review submitted successfully',
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          content: TestUtils.createContent(),
+          message: 'Review submitted successfully',
+        });
 
       const { result } = renderHook(() => useReviewSubmit(), { wrapper });
 

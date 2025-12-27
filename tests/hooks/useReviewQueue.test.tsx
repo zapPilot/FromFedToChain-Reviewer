@@ -34,7 +34,15 @@ describe('useReviewQueue', () => {
   describe('Data Fetching', () => {
     it('fetches pending content on mount', async () => {
       const mockData = [TestUtils.createContent()];
-      vi.mocked(apiClient.getPendingContent).mockResolvedValue(mockData);
+      vi.mocked(apiClient.getPendingContent).mockResolvedValue({
+        content: mockData,
+        pagination: {
+          page: 1,
+          limit: 12,
+          total: mockData.length,
+          totalPages: 1,
+        },
+      });
 
       const { result } = renderHook(() => useReviewQueue(), { wrapper });
 
@@ -46,7 +54,15 @@ describe('useReviewQueue', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data).toEqual(mockData);
+      expect(result.current.data).toEqual({
+        content: mockData,
+        pagination: {
+          page: 1,
+          limit: 12,
+          total: mockData.length,
+          totalPages: 1,
+        },
+      });
       expect(apiClient.getPendingContent).toHaveBeenCalledTimes(1);
     });
 
@@ -67,14 +83,22 @@ describe('useReviewQueue', () => {
         TestUtils.createContent({ id: '2025-01-01-test' }),
         TestUtils.createContent({ id: '2025-01-02-test' }),
       ];
-      vi.mocked(apiClient.getPendingContent).mockResolvedValue(mockContent);
+      vi.mocked(apiClient.getPendingContent).mockResolvedValue({
+        content: mockContent,
+        pagination: {
+          page: 1,
+          limit: 12,
+          total: mockContent.length,
+          totalPages: 1,
+        },
+      });
 
       const { result } = renderHook(() => useReviewQueue(), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(result.current.data).toEqual(mockContent);
-      expect(result.current.data).toHaveLength(2);
+      expect(result.current.data?.content).toEqual(mockContent);
+      expect(result.current.data?.content).toHaveLength(2);
     });
 
     it('returns error state on failure', async () => {
@@ -93,7 +117,15 @@ describe('useReviewQueue', () => {
   describe('Query Parameters', () => {
     it('accepts category filter', async () => {
       const mockData = [TestUtils.createContent({ category: 'ethereum' })];
-      vi.mocked(apiClient.getPendingContent).mockResolvedValue(mockData);
+      vi.mocked(apiClient.getPendingContent).mockResolvedValue({
+        content: mockData,
+        pagination: {
+          page: 1,
+          limit: 12,
+          total: mockData.length,
+          totalPages: 1,
+        },
+      });
 
       const { result } = renderHook(
         () => useReviewQueue({ category: 'ethereum' }),
@@ -105,12 +137,20 @@ describe('useReviewQueue', () => {
       expect(apiClient.getPendingContent).toHaveBeenCalledWith({
         category: 'ethereum',
       });
-      expect(result.current.data).toEqual(mockData);
+      expect(result.current.data?.content).toEqual(mockData);
     });
 
     it('accepts page parameter', async () => {
       const mockData = [TestUtils.createContent()];
-      vi.mocked(apiClient.getPendingContent).mockResolvedValue(mockData);
+      vi.mocked(apiClient.getPendingContent).mockResolvedValue({
+        content: mockData,
+        pagination: {
+          page: 2,
+          limit: 12,
+          total: mockData.length,
+          totalPages: 1,
+        },
+      });
 
       const { result } = renderHook(() => useReviewQueue({ page: 2 }), {
         wrapper,
@@ -125,7 +165,15 @@ describe('useReviewQueue', () => {
 
     it('accepts limit parameter', async () => {
       const mockData = [TestUtils.createContent()];
-      vi.mocked(apiClient.getPendingContent).mockResolvedValue(mockData);
+      vi.mocked(apiClient.getPendingContent).mockResolvedValue({
+        content: mockData,
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: mockData.length,
+          totalPages: 1,
+        },
+      });
 
       const { result } = renderHook(() => useReviewQueue({ limit: 20 }), {
         wrapper,
@@ -140,7 +188,15 @@ describe('useReviewQueue', () => {
 
     it('accepts search parameter', async () => {
       const mockData = [TestUtils.createContent({ title: 'Bitcoin Analysis' })];
-      vi.mocked(apiClient.getPendingContent).mockResolvedValue(mockData);
+      vi.mocked(apiClient.getPendingContent).mockResolvedValue({
+        content: mockData,
+        pagination: {
+          page: 1,
+          limit: 12,
+          total: mockData.length,
+          totalPages: 1,
+        },
+      });
 
       const { result } = renderHook(
         () => useReviewQueue({ search: 'bitcoin' }),
@@ -156,7 +212,15 @@ describe('useReviewQueue', () => {
 
     it('accepts multiple parameters', async () => {
       const mockData = [TestUtils.createContent()];
-      vi.mocked(apiClient.getPendingContent).mockResolvedValue(mockData);
+      vi.mocked(apiClient.getPendingContent).mockResolvedValue({
+        content: mockData,
+        pagination: {
+          page: 2,
+          limit: 10,
+          total: mockData.length,
+          totalPages: 1,
+        },
+      });
 
       const { result } = renderHook(
         () =>
@@ -183,7 +247,15 @@ describe('useReviewQueue', () => {
   describe('Caching', () => {
     it('uses query key for cache management', async () => {
       const mockData = [TestUtils.createContent()];
-      vi.mocked(apiClient.getPendingContent).mockResolvedValue(mockData);
+      vi.mocked(apiClient.getPendingContent).mockResolvedValue({
+        content: mockData,
+        pagination: {
+          page: 1,
+          limit: 12,
+          total: mockData.length,
+          totalPages: 1,
+        },
+      });
 
       // First render
       const { result } = renderHook(() => useReviewQueue(), {
@@ -192,7 +264,15 @@ describe('useReviewQueue', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(apiClient.getPendingContent).toHaveBeenCalledTimes(1);
-      expect(result.current.data).toEqual(mockData);
+      expect(result.current.data).toEqual({
+        content: mockData,
+        pagination: {
+          page: 1,
+          limit: 12,
+          total: mockData.length,
+          totalPages: 1,
+        },
+      });
 
       // Test passes - query key system is working
       // Note: Actual caching behavior is disabled in tests (gcTime: 0)
@@ -204,8 +284,24 @@ describe('useReviewQueue', () => {
       const mockData2 = [TestUtils.createContent({ category: 'daily-news' })];
 
       vi.mocked(apiClient.getPendingContent)
-        .mockResolvedValueOnce(mockData1)
-        .mockResolvedValueOnce(mockData2);
+        .mockResolvedValueOnce({
+          content: mockData1,
+          pagination: {
+            page: 1,
+            limit: 12,
+            total: mockData1.length,
+            totalPages: 1,
+          },
+        })
+        .mockResolvedValueOnce({
+          content: mockData2,
+          pagination: {
+            page: 1,
+            limit: 12,
+            total: mockData2.length,
+            totalPages: 1,
+          },
+        });
 
       // Render with first params
       const { result: result1 } = renderHook(
@@ -213,7 +309,7 @@ describe('useReviewQueue', () => {
         { wrapper }
       );
       await waitFor(() => expect(result1.current.isSuccess).toBe(true));
-      expect(result1.current.data).toEqual(mockData1);
+      expect(result1.current.data?.content).toEqual(mockData1);
 
       // Render with different params
       const { result: result2 } = renderHook(
@@ -221,7 +317,7 @@ describe('useReviewQueue', () => {
         { wrapper }
       );
       await waitFor(() => expect(result2.current.isSuccess).toBe(true));
-      expect(result2.current.data).toEqual(mockData2);
+      expect(result2.current.data?.content).toEqual(mockData2);
 
       // Should have made 2 separate API calls (different cache keys)
       expect(apiClient.getPendingContent).toHaveBeenCalledTimes(2);

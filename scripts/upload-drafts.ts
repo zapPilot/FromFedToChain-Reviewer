@@ -18,6 +18,11 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { loadEnvConfig } from '@next/env';
+
+// Load environment variables from .env.local, .env, etc.
+loadEnvConfig(process.cwd());
+
 import { ContentManager } from '@/lib/ContentManager';
 import { Category } from '@/types/content';
 import { getSupabaseAdmin } from '@/lib/supabase';
@@ -39,6 +44,7 @@ interface DraftContent {
   content: string;
   references?: string[];
   framework?: string;
+  knowledge_concepts_used?: string[];
 }
 
 interface ProcessResult {
@@ -169,7 +175,8 @@ async function uploadDraft(draft: DraftFile): Promise<void> {
     data.title,
     data.content,
     data.references || [],
-    data.framework || ''
+    data.framework || '',
+    data.knowledge_concepts_used || []
   );
 }
 

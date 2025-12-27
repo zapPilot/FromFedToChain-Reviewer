@@ -35,8 +35,8 @@ describe('useContentDetail', () => {
       const mockResponse = {
         content: mockContent,
         navigation: {
-          previousId: null,
-          nextId: '2025-01-02-test',
+          previous: null,
+          next: '2025-01-02-test',
         },
       };
       vi.mocked(apiClient.getContentDetail).mockResolvedValue(mockResponse);
@@ -80,8 +80,8 @@ describe('useContentDetail', () => {
       const mockResponse = {
         content: mockContent,
         navigation: {
-          previousId: null,
-          nextId: '2025-01-02-ethereum',
+          previous: null,
+          next: '2025-01-02-ethereum',
         },
       };
       vi.mocked(apiClient.getContentDetail).mockResolvedValue(mockResponse);
@@ -94,9 +94,7 @@ describe('useContentDetail', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data?.content).toEqual(mockContent);
-      expect(result.current.data?.navigation.nextId).toBe(
-        '2025-01-02-ethereum'
-      );
+      expect(result.current.data?.navigation.next).toBe('2025-01-02-ethereum');
     });
 
     it('handles 404 errors', async () => {
@@ -132,8 +130,8 @@ describe('useContentDetail', () => {
       const mockResponse = {
         content: TestUtils.createContent({ id: '2025-01-02-middle' }),
         navigation: {
-          previousId: '2025-01-01-first',
-          nextId: '2025-01-03-last',
+          previous: '2025-01-01-first',
+          next: '2025-01-03-last',
         },
       };
       vi.mocked(apiClient.getContentDetail).mockResolvedValue(mockResponse);
@@ -148,17 +146,17 @@ describe('useContentDetail', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data?.navigation).toEqual({
-        previousId: '2025-01-01-first',
-        nextId: '2025-01-03-last',
+        previous: '2025-01-01-first',
+        next: '2025-01-03-last',
       });
     });
 
-    it('returns null for previousId when first item', async () => {
+    it('returns null for previous when first item', async () => {
       const mockResponse = {
         content: TestUtils.createContent({ id: '2025-01-01-first' }),
         navigation: {
-          previousId: null,
-          nextId: '2025-01-02-next',
+          previous: null,
+          next: '2025-01-02-next',
         },
       };
       vi.mocked(apiClient.getContentDetail).mockResolvedValue(mockResponse);
@@ -172,16 +170,16 @@ describe('useContentDetail', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(result.current.data?.navigation.previousId).toBeNull();
-      expect(result.current.data?.navigation.nextId).toBe('2025-01-02-next');
+      expect(result.current.data?.navigation.previous).toBeNull();
+      expect(result.current.data?.navigation.next).toBe('2025-01-02-next');
     });
 
-    it('returns null for nextId when last item', async () => {
+    it('returns null for next when last item', async () => {
       const mockResponse = {
         content: TestUtils.createContent({ id: '2025-01-03-last' }),
         navigation: {
-          previousId: '2025-01-02-previous',
-          nextId: null,
+          previous: '2025-01-02-previous',
+          next: null,
         },
       };
       vi.mocked(apiClient.getContentDetail).mockResolvedValue(mockResponse);
@@ -192,18 +190,18 @@ describe('useContentDetail', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(result.current.data?.navigation.previousId).toBe(
+      expect(result.current.data?.navigation.previous).toBe(
         '2025-01-02-previous'
       );
-      expect(result.current.data?.navigation.nextId).toBeNull();
+      expect(result.current.data?.navigation.next).toBeNull();
     });
 
     it('returns both null when only one item', async () => {
       const mockResponse = {
         content: TestUtils.createContent({ id: '2025-01-01-only' }),
         navigation: {
-          previousId: null,
-          nextId: null,
+          previous: null,
+          next: null,
         },
       };
       vi.mocked(apiClient.getContentDetail).mockResolvedValue(mockResponse);
@@ -214,8 +212,8 @@ describe('useContentDetail', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(result.current.data?.navigation.previousId).toBeNull();
-      expect(result.current.data?.navigation.nextId).toBeNull();
+      expect(result.current.data?.navigation.previous).toBeNull();
+      expect(result.current.data?.navigation.next).toBeNull();
     });
   });
 
@@ -223,7 +221,7 @@ describe('useContentDetail', () => {
     it('uses content ID in query key', async () => {
       const mockResponse = {
         content: TestUtils.createContent({ id: 'test-id' }),
-        navigation: { previousId: null, nextId: null },
+        navigation: { previous: null, next: null },
       };
       vi.mocked(apiClient.getContentDetail).mockResolvedValue(mockResponse);
 
@@ -240,11 +238,11 @@ describe('useContentDetail', () => {
     it('creates different cache entries for different IDs', async () => {
       const mockResponse1 = {
         content: TestUtils.createContent({ id: 'id-1' }),
-        navigation: { previousId: null, nextId: 'id-2' },
+        navigation: { previous: null, next: 'id-2' },
       };
       const mockResponse2 = {
         content: TestUtils.createContent({ id: 'id-2' }),
-        navigation: { previousId: 'id-1', nextId: null },
+        navigation: { previous: 'id-1', next: null },
       };
 
       vi.mocked(apiClient.getContentDetail)
