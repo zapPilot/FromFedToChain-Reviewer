@@ -4,6 +4,7 @@ import { GET as getPending } from '@/app/api/review/pending/route';
 import { GET as getContentDetail } from '@/app/api/review/[id]/route';
 import { GET as getStats } from '@/app/api/review/stats/route';
 import { POST as submitReview } from '@/app/api/review/[id]/submit/route';
+import { PATCH as updateCategory } from '@/app/api/review/[id]/category/route';
 import { ContentManager } from '@/lib/ContentManager';
 import { TestUtils } from '../setup';
 import { getSupabaseAdmin } from '@/lib/supabase';
@@ -366,6 +367,83 @@ describe('Review API Routes', () => {
       expect(body).toHaveProperty('success', false);
       expect(body).toHaveProperty('error');
       expect(body.error).toHaveProperty('code', 'NOT_FOUND');
+    });
+  });
+
+  describe('PATCH /api/review/[id]/category', () => {
+    it('should return standardized response format when updating category', async () => {
+      const content = TestUtils.createContent({
+        id: 'test-1',
+        status: 'draft',
+        category: 'daily-news',
+      });
+
+      // Mock Supabase to return the updated content
+      const updatedContent = { ...content, category: 'ethereum' };
+      mockSupabase.single.mockResolvedValue({
+        data: updatedContent,
+        error: null,
+      });
+
+      const request = new NextRequest(
+        'http://localhost:3000/api/review/test-1/category',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ category: 'ethereum' }),
+        }
+      );
+      const params = Promise.resolve({ id: 'test-1' });
+      const response = await updateCategory(request, { params });
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body).toHaveProperty('success', true);
+      expect(body.data).toHaveProperty('content');
+      expect(body.data).toHaveProperty(
+        'message',
+        'Category updated successfully'
+      );
+    });
+
+    it('should return validation error format when category is missing', async () => {
+      const request = new NextRequest(
+        'http://localhost:3000/api/review/test-1/category',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({}),
+        }
+      );
+      const params = Promise.resolve({ id: 'test-1' });
+      const response = await updateCategory(request, { params });
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body).toHaveProperty('success', false);
+      expect(body).toHaveProperty('error');
+      expect(body.error).toHaveProperty('code', 'VALIDATION_ERROR');
+      expect(body.error).toHaveProperty('field', 'category');
+    });
+
+    it('should return error when content not found', async () => {
+      // Mock Supabase to return no content (ContentManager will throw error)
+      mockSupabase.single.mockResolvedValue({ data: null, error: null });
+
+      const request = new NextRequest(
+        'http://localhost:3000/api/review/non-existent/category',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ category: 'ethereum' }),
+        }
+      );
+      const params = Promise.resolve({ id: 'non-existent' });
+      const response = await updateCategory(request, { params });
+      const body = await response.json();
+
+      // ContentManager.updateSourceCategory throws when content not found
+      // This might be a 404 or 500 depending on error handling
+      expect(body).toHaveProperty('success', false);
+      expect(body).toHaveProperty('error');
+      expect(body.error).toHaveProperty('message');
     });
   });
 });

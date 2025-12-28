@@ -128,4 +128,139 @@ describe('ContentSchema', () => {
     expect(ContentSchema.getPipelinePhases().length).toBeGreaterThan(0);
     expect(ContentSchema.getPipelineStep('wav')?.nextStatus).toBe('m3u8');
   });
+
+  describe('getCategoryInfo', () => {
+    it('returns correct info for all categories', () => {
+      expect(ContentSchema.getCategoryInfo('daily-news')).toEqual({
+        name: 'Daily News',
+        emoji: '📰',
+      });
+      expect(ContentSchema.getCategoryInfo('ethereum')).toEqual({
+        name: 'Ethereum',
+        emoji: '⚡',
+      });
+      expect(ContentSchema.getCategoryInfo('macro')).toEqual({
+        name: 'Macro Economics',
+        emoji: '📊',
+      });
+      expect(ContentSchema.getCategoryInfo('startup')).toEqual({
+        name: 'Startup',
+        emoji: '🚀',
+      });
+      expect(ContentSchema.getCategoryInfo('ai')).toEqual({
+        name: 'AI',
+        emoji: '🤖',
+      });
+      expect(ContentSchema.getCategoryInfo('defi')).toEqual({
+        name: 'DeFi',
+        emoji: '💎',
+      });
+    });
+  });
+
+  describe('getLanguageInfo', () => {
+    it('returns correct info for all languages', () => {
+      expect(ContentSchema.getLanguageInfo('zh-TW')).toEqual({
+        name: '繁體中文',
+        flag: '🇹🇼',
+      });
+      expect(ContentSchema.getLanguageInfo('en-US')).toEqual({
+        name: 'English',
+        flag: '🇺🇸',
+      });
+      expect(ContentSchema.getLanguageInfo('ja-JP')).toEqual({
+        name: '日本語',
+        flag: '🇯🇵',
+      });
+    });
+  });
+
+  describe('getStatusInfo', () => {
+    it('returns correct info for all statuses', () => {
+      const draftInfo = ContentSchema.getStatusInfo('draft');
+      expect(draftInfo.name).toBe('Draft');
+      expect(draftInfo.color).toBe('text-gray-700');
+      expect(draftInfo.bgColor).toBe('bg-gray-100');
+
+      const reviewedInfo = ContentSchema.getStatusInfo('reviewed');
+      expect(reviewedInfo.name).toBe('Reviewed');
+
+      const socialInfo = ContentSchema.getStatusInfo('social');
+      expect(socialInfo.name).toBe('Published');
+    });
+  });
+
+  describe('constant accessors', () => {
+    it('returns supported languages', () => {
+      const languages = ContentSchema.getSupportedLanguages();
+      expect(languages).toContain('en-US');
+      expect(languages).toContain('ja-JP');
+      expect(languages).not.toContain('zh-TW');
+    });
+
+    it('returns all languages including source', () => {
+      const languages = ContentSchema.getAllLanguages();
+      expect(languages).toContain('zh-TW');
+      expect(languages).toContain('en-US');
+      expect(languages).toContain('ja-JP');
+    });
+
+    it('returns social platforms', () => {
+      const platforms = ContentSchema.getSocialPlatforms();
+      expect(platforms).toContain('twitter');
+      expect(platforms).toContain('threads');
+      expect(platforms).toContain('farcaster');
+    });
+
+    it('returns categories', () => {
+      const categories = ContentSchema.getCategories();
+      expect(categories).toContain('daily-news');
+      expect(categories).toContain('ethereum');
+      expect(categories.length).toBe(6);
+    });
+
+    it('returns statuses', () => {
+      const statuses = ContentSchema.getStatuses();
+      expect(statuses).toContain('draft');
+      expect(statuses).toContain('social');
+      expect(statuses.length).toBe(8);
+    });
+
+    it('returns example content', () => {
+      const example = ContentSchema.getExample();
+      expect(example.id).toBe('2025-06-30-example-content');
+      expect(example.category).toBe('daily-news');
+      expect(example.language).toBe('zh-TW');
+    });
+  });
+
+  describe('validate edge cases', () => {
+    it('rejects invalid framework type', () => {
+      const content = ContentSchema.createContent(
+        sampleId,
+        'daily-news',
+        'zh-TW',
+        'Title',
+        'Content'
+      );
+      (content as any).framework = 123;
+      expect(() => ContentSchema.validate(content)).toThrow(
+        'Framework must be a string if provided'
+      );
+    });
+
+    it('rejects invalid knowledge_concepts_used type', () => {
+      const content = ContentSchema.createContent(
+        sampleId,
+        'daily-news',
+        'zh-TW',
+        'Title',
+        'Content'
+      );
+      (content as any).knowledge_concepts_used = 'not-an-array';
+      expect(() => ContentSchema.validate(content)).toThrow(
+        'knowledge_concepts_used must be an array if provided'
+      );
+    });
+  });
 });

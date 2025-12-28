@@ -1,121 +1,112 @@
-# Review Web - Content Review Interface
+# Review Web
 
-Modern web-based review interface for content management with integrated translation and audio processing pipeline.
+Content review interface for From Fed to Chain with translation and audio pipeline integration.
 
 ## Quick Start
 
-Get up and running in 5 minutes!
-
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Run development server
 npm run dev
-
-# 3. Open browser
-open http://localhost:3000
+# Open http://localhost:3000
 ```
-
-That's it! The app will use the default content directory (`./content`).
-
-> **Need custom setup?** See [Setup](#setup) below or check [docs/setup/pipeline.md](docs/setup/pipeline.md) for full pipeline configuration.
 
 ## Features
 
-- 📋 Review queue with filtering and search
-- ✅ Accept/reject content with feedback
-- 📝 Inline category editing
-- 📊 Review statistics dashboard
-- 📜 Review history tracking
-- ⌨️ Keyboard shortcuts for navigation
-- 🎨 Modern UI with Tailwind CSS
+| Feature               | Description                                  |
+| --------------------- | -------------------------------------------- |
+| 📋 Review Queue       | Filter, search, and paginate pending content |
+| ✅ Accept/Reject      | Submit decisions with optional feedback      |
+| 📝 Category Editing   | Inline category updates                      |
+| 📊 Statistics         | Review counts and analytics dashboard        |
+| 📜 History            | Full audit trail of review decisions         |
+| ⌨️ Keyboard Shortcuts | `j/k` navigation, `a` accept, `r` reject     |
 
 ## Tech Stack
 
-- **Framework**: Next.js 14+ (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
+- **Database**: Supabase (PostgreSQL)
 - **Styling**: Tailwind CSS
-- **State Management**: TanStack Query
-- **Form Handling**: React Hook Form + Zod
-- **UI Components**: shadcn/ui
+- **State**: TanStack Query
+- **Testing**: Vitest + Testing Library
 
-## Setup
+## Environment Setup
 
-### 1. Install Dependencies
-
-```bash
-npm install
-```
-
-### 2. Configure Content Directory
-
-The app stores content in the local `content/` directory or Supabase.
-
-**Option A: Environment Variable (Optional)**
-
-Create a `.env.local` file to customize the content directory:
+Copy `.env.example` to `.env.local`:
 
 ```env
-CONTENT_DIR=/absolute/path/to/content
+# Required - Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-role-key
+
+# Optional - GitHub Workflow Integration
+GITHUB_TOKEN=your-github-pat
+NEXT_PUBLIC_GITHUB_OWNER=your-username
+NEXT_PUBLIC_GITHUB_REPO=review-web
 ```
 
-**Option B: Default Path**
+## Scripts
 
-By default, the app uses `./content` in the review-web directory:
+| Command                   | Description                     |
+| ------------------------- | ------------------------------- |
+| `npm run dev`             | Start development server        |
+| `npm run build`           | Production build                |
+| `npm run start`           | Start production server         |
+| `npm run test`            | Run tests                       |
+| `npm run lint`            | ESLint check                    |
+| `npm run type-check`      | TypeScript validation           |
+| `npm run format`          | Prettier formatting             |
+| `npm run drafts:upload`   | Upload local drafts to Supabase |
+| `npm run migrate:content` | Migrate content to Supabase     |
+
+## Content Workflow
+
+### Creating Drafts
+
+1. Generate draft with Gemini CLI:
+
+   ```bash
+   gemini
+   /write_from_url https://www.panewslab.com/xxxxx
+   ```
+
+2. Upload drafts to Supabase:
+
+   ```bash
+   npm run drafts:upload
+   ```
+
+3. Review at: https://from-fed-to-chain-reviewer.vercel.app/review
+
+### Draft Files
+
+Local drafts are stored in `content-drafts/` before upload:
 
 ```
-/path/to/review-web/
-├── content/
-└── src/
+content-drafts/
+├── 2025-12-28-article-id.json
+└── README.md
 ```
-
-### 3. Run Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## API Routes
 
-- `GET /api/review/pending` - List pending content for review
-  - Query params: `category`, `page`, `limit`, `search`
-- `GET /api/review/[id]` - Get single content with navigation
-- `POST /api/review/[id]/submit` - Submit review decision
-  - Body: `{ action: "accept" | "reject", feedback: string, newCategory?: string }`
-- `PATCH /api/review/[id]/category` - Update content category
-  - Body: `{ category: string }`
-- `GET /api/review/stats` - Get review statistics
-- `GET /api/review/history` - Get review history
-  - Query params: `reviewer`, `decision`, `page`, `limit`
+### Review Operations
 
-## Development Roadmap
+| Endpoint                    | Method | Description                                                           |
+| --------------------------- | ------ | --------------------------------------------------------------------- |
+| `/api/review/pending`       | GET    | List pending content (supports `category`, `page`, `limit`, `search`) |
+| `/api/review/[id]`          | GET    | Get content with navigation context                                   |
+| `/api/review/[id]/submit`   | POST   | Submit review decision                                                |
+| `/api/review/[id]/category` | PATCH  | Update content category                                               |
+| `/api/review/stats`         | GET    | Review statistics                                                     |
+| `/api/review/history`       | GET    | Review history (supports `reviewer`, `decision`, `page`, `limit`)     |
 
-### Phase 1: MVP (Current)
+### Pipeline Operations
 
-- [x] Project setup with TypeScript and Tailwind
-- [x] API routes for review operations
-- [ ] Review queue page UI
-- [ ] Content detail/review page UI
-- [ ] Basic keyboard shortcuts
-- [ ] Testing with real data
-
-### Phase 2: Enhanced Features
-
-- [ ] Authentication with NextAuth.js
-- [ ] Multi-user support
-- [ ] Advanced filtering and search
-- [ ] Review analytics dashboard
-- [ ] Dark mode toggle
-
-### Phase 3: Advanced
-
-- [ ] Real-time collaboration
-- [ ] Commenting and discussions
-- [ ] Pipeline status integration
-- [ ] Admin panel
+| Endpoint                    | Method | Description           |
+| --------------------------- | ------ | --------------------- |
+| `/api/pipeline/[id]/[step]` | POST   | Trigger pipeline step |
 
 ## Project Structure
 
@@ -123,65 +114,60 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 review-web/
 ├── src/
 │   ├── app/
-│   │   ├── api/review/          # API routes
-│   │   ├── review/              # Review pages
-│   │   ├── layout.tsx           # Root layout
-│   │   └── page.tsx             # Home (redirects to /review)
+│   │   ├── api/             # API routes
+│   │   ├── review/          # Review pages
+│   │   └── pipeline/        # Pipeline status pages
 │   ├── components/
-│   │   ├── ui/                  # shadcn/ui components
-│   │   └── review/              # Custom review components
+│   │   ├── ui/              # shadcn/ui components
+│   │   └── review/          # Review-specific components
 │   ├── lib/
-│   │   ├── ContentManager.ts    # Content CRUD operations
-│   │   ├── ContentSchema.ts     # Schema utilities
-│   │   └── utils.ts             # Helper functions
-│   ├── hooks/                   # Custom React hooks
-│   └── types/
-│       └── content.ts           # TypeScript types
-├── package.json
-├── tsconfig.json
-├── tailwind.config.ts
-└── next.config.js
+│   │   ├── ContentManager.ts
+│   │   ├── ContentSchema.ts
+│   │   ├── KnowledgeManager.ts
+│   │   ├── services/        # Pipeline services
+│   │   └── supabase.ts
+│   ├── hooks/               # React hooks
+│   └── types/               # TypeScript definitions
+├── scripts/                 # CLI utilities
+├── content-drafts/          # Local draft storage
+├── tests/                   # Test files
+└── docs/                    # Documentation
 ```
 
-## Building for Production
+## Pipeline Services
+
+Located in `src/lib/services/`:
+
+| Service                    | Purpose                     |
+| -------------------------- | --------------------------- |
+| `TranslationService.ts`    | Google Cloud Translation    |
+| `AudioService.ts`          | Google Cloud Text-to-Speech |
+| `M3U8ConversionService.ts` | FFmpeg HLS conversion       |
+| `CloudflareR2Service.ts`   | R2 upload for streaming     |
+| `ContentUploadService.ts`  | Content metadata sync       |
+
+## Deployment
+
+### Vercel (Recommended)
+
+The app is deployed on Vercel with automatic deployments from `main` branch.
+
+**Live URL**: https://from-fed-to-chain-reviewer.vercel.app
+
+### Local Production Build
 
 ```bash
 npm run build
 npm run start
 ```
 
-## Deployment
-
-Choose your deployment platform:
-
-- **Fly.io** (Recommended) - Full-stack deployment with Supabase
-  - See [DEPLOYMENT.md](DEPLOYMENT.md) or [docs/deployment/flyio.md](docs/deployment/flyio.md)
-  - Supports all features including API routes and pipeline
-  - Free tier available
-
-- **GitHub Pages** - Static deployment with GitHub Actions
-  - See [docs/deployment/github-pages.md](docs/deployment/github-pages.md)
-  - Pipeline runs via GitHub Actions
-  - Free for public repositories
-
 ## Documentation
 
-- **[Quick Start](#quick-start)** - Get running in 5 minutes
-- **[Pipeline Setup](docs/setup/pipeline.md)** - FFmpeg, rclone, Google Cloud configuration
-- **[Deployment Guide](DEPLOYMENT.md)** - Deploy to Fly.io with Supabase
-- **[GitHub Pages Setup](docs/deployment/github-pages.md)** - Alternative static deployment
-- **[API Reference](#api-routes)** - Complete API documentation
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+- [Pipeline Setup](docs/setup/pipeline.md) - FFmpeg, rclone, Google Cloud configuration
+- [GitHub Pages Deployment](docs/deployment/github-pages.md) - Static deployment option
+- [Workflow Troubleshooting](docs/WORKFLOW_TROUBLESHOOTING.md) - Common issues and fixes
+- [Contributing](CONTRIBUTING.md) - Contribution guidelines
 
 ## License
 
-MIT License
-
-## For generating drafts
-
-1. `gemini` , and then `/write_from_url https://www.panewslab.com/xxxxx`
-2. `npm run drafts:upload`
-3. visit https://from-fed-to-chain-reviewer.vercel.app/review
+MIT

@@ -23,6 +23,12 @@ export default defineConfig({
         '**/*.config.*',
         '**/node_modules/**',
       ],
+      thresholds: {
+        statements: 95,
+        branches: 80,
+        functions: 85,
+        lines: 95,
+      },
     },
   },
 });
