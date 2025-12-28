@@ -179,3 +179,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 ## License
 
 MIT License
+
+## For generating drafts
+
+1. `gemini` , and then `/write_from_url https://www.panewslab.com/xxxxx`
+2. `npm run drafts:upload`
+3. visit https://from-fed-to-chain-reviewer.vercel.app/review

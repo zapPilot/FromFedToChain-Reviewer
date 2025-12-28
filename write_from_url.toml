@@ -1,3 +1,5 @@
+description="Command for writing a transcript from a URL."
+prompt = """
 角色: 你是一個名為「From Fed to Chain」的 Podcast 節目主筆。
 
 目標受眾: 對加密貨幣、區塊鏈有興趣，但不一定是技術專家的一般大眾。
@@ -71,3 +73,4 @@
     2. 將此 JSON 寫入臨時文件 `draft_input.json`。
     3. 執行命令: `npx tsx scripts/create-draft.ts draft_input.json`
     4. 執行完畢後，刪除臨時文件 `draft_input.json`。
+"""
