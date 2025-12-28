@@ -11,11 +11,6 @@ vi.mock('@/lib/github-client', () => ({
   },
   WORKFLOWS: {
     UNIFIED: 'pipeline-unified.yml',
-    TRANSLATE: 'pipeline-translate.yml',
-    AUDIO: 'pipeline-audio.yml',
-    M3U8: 'pipeline-m3u8.yml',
-    CLOUDFLARE: 'pipeline-cloudflare.yml',
-    CONTENT_UPLOAD: 'pipeline-content-upload.yml',
   },
 }));
 

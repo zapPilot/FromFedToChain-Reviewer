@@ -27,11 +27,6 @@ describe('github-client', () => {
       const { WORKFLOWS } = await import('@/lib/github-client');
 
       expect(WORKFLOWS.UNIFIED).toBe('pipeline-unified.yml');
-      expect(WORKFLOWS.TRANSLATE).toBe('pipeline-translate.yml');
-      expect(WORKFLOWS.AUDIO).toBe('pipeline-audio.yml');
-      expect(WORKFLOWS.M3U8).toBe('pipeline-m3u8.yml');
-      expect(WORKFLOWS.CLOUDFLARE).toBe('pipeline-cloudflare.yml');
-      expect(WORKFLOWS.CONTENT_UPLOAD).toBe('pipeline-content-upload.yml');
     });
   });
 

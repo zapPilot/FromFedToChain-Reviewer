@@ -33,8 +33,11 @@ export function PipelineActionButton({
         );
       }
 
-      // Trigger translation workflow (first step)
-      await githubClient.triggerWorkflow(WORKFLOWS.TRANSLATE, { contentId });
+      // Trigger translation workflow (first step) using unified pipeline
+      await githubClient.triggerWorkflow(WORKFLOWS.UNIFIED, {
+        contentId,
+        start_stage: 'translation',
+      });
 
       return { contentId };
     },

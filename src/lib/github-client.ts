@@ -15,13 +15,6 @@ const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN || '';
 // Workflow file names in .github/workflows/
 export const WORKFLOWS = {
   UNIFIED: 'pipeline-unified.yml', // New unified workflow with all stages
-  TRANSLATE: 'pipeline-translate.yml', // Legacy: kept for backward compatibility
-  // Deprecated: These workflows are archived but kept in type for backward compatibility with useWorkflowStatus hook
-  // DO NOT USE THESE - use UNIFIED workflow with start_stage parameter instead
-  AUDIO: 'pipeline-audio.yml', // Deprecated - use UNIFIED with start_stage: 'audio'
-  M3U8: 'pipeline-m3u8.yml', // Deprecated - use UNIFIED with start_stage: 'm3u8'
-  CLOUDFLARE: 'pipeline-cloudflare.yml', // Deprecated - use UNIFIED with start_stage: 'cloudflare'
-  CONTENT_UPLOAD: 'pipeline-content-upload.yml', // Deprecated - use UNIFIED with start_stage: 'content-upload'
 } as const;
 
 export type WorkflowName = (typeof WORKFLOWS)[keyof typeof WORKFLOWS];
@@ -45,6 +38,7 @@ export interface TriggerWorkflowParams {
   contentId: string;
   language?: string;
   category?: string;
+  start_stage?: string;
 }
 
 class GitHubClient {
@@ -117,6 +111,7 @@ class GitHubClient {
           contentId: inputs.contentId,
           language: inputs.language || '',
           category: inputs.category || '',
+          start_stage: inputs.start_stage || '',
         },
       }),
     });
@@ -243,7 +238,6 @@ class GitHubClient {
     // All subsequent stages (audio → m3u8 → cloudflare → content-upload) run automatically
     await this.triggerWorkflow(WORKFLOWS.UNIFIED, {
       ...params,
-      // @ts-expect-error - start_stage not in TriggerWorkflowParams type
       start_stage: 'translate',
     });
   }

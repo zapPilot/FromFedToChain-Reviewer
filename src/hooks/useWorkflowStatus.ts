@@ -4,7 +4,12 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { Query } from '@tanstack/query-core';
-import { githubClient, WorkflowName, WorkflowRun } from '@/lib/github-client';
+import {
+  githubClient,
+  WorkflowName,
+  WorkflowRun,
+  WORKFLOWS,
+} from '@/lib/github-client';
 import { queryKeys } from '@/lib/query-keys';
 
 export interface UseWorkflowStatusOptions {
@@ -98,57 +103,25 @@ export function useAllWorkflowsStatus({
   enabled = true,
   pollingInterval = 10000,
 }: UseAllWorkflowsStatusOptions) {
-  const translate = useWorkflowStatus({
-    workflowFile: 'pipeline-translate.yml',
+  const unified = useWorkflowStatus({
+    workflowFile: WORKFLOWS.UNIFIED,
     contentId,
     enabled,
     pollingInterval,
   });
-
-  const audio = useWorkflowStatus({
-    workflowFile: 'pipeline-audio.yml',
-    contentId,
-    enabled,
-    pollingInterval,
-  });
-
-  const m3u8 = useWorkflowStatus({
-    workflowFile: 'pipeline-m3u8.yml',
-    contentId,
-    enabled,
-    pollingInterval,
-  });
-
-  const cloudflare = useWorkflowStatus({
-    workflowFile: 'pipeline-cloudflare.yml',
-    contentId,
-    enabled,
-    pollingInterval,
-  });
-
-  const contentUpload = useWorkflowStatus({
-    workflowFile: 'pipeline-content-upload.yml',
-    contentId,
-    enabled,
-    pollingInterval,
-  });
-
-  const allWorkflows = {
-    translate,
-    audio,
-    m3u8,
-    cloudflare,
-    contentUpload,
-  };
-
-  const isAnyRunning = Object.values(allWorkflows).some((w) => w.isRunning);
-  const allComplete = Object.values(allWorkflows).every((w) => w.isComplete);
-  const anyFailed = Object.values(allWorkflows).some((w) => w.isFailed);
 
   return {
-    workflows: allWorkflows,
-    isAnyRunning,
-    allComplete,
-    anyFailed,
+    workflows: {
+      unified,
+      // Legacy mapping for compatibility if needed, using same status
+      translate: unified,
+      audio: unified,
+      m3u8: unified,
+      cloudflare: unified,
+      contentUpload: unified,
+    },
+    isAnyRunning: unified.isRunning,
+    allComplete: unified.isComplete,
+    anyFailed: unified.isFailed,
   };
 }
