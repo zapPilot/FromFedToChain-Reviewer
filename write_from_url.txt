@@ -37,8 +37,13 @@
         * **操作**: 找出市場上的「反對派」，解釋為什麼他們選擇了不同的路，以及主角為何更優（或各有千秋）。
 
       * 深入淺出的硬核知識 (Technical Depth via Analogy):
-        * 解釋技術（如 ZKML, Account Abstraction, OEV）時，必須使用**生活化類比**。
-        * *範例*: OEV 不只是「提取價值」，而是「拍賣插隊權」；EIL 不只是「互操作層」，而是「聯邦公路系統」。
+        * **保留技術顆粒度 (Retain Technical Granularity)**:
+            * **不要閹割細節**: 必須準確提及具體的 EIP 編號、ERC 標準、硬分叉代號（如 Glamsterdam, Hegota, EIP-7825）。聽眾雖然是普通人，但他們渴望聽到「內行」的詞彙被解釋清楚，而不是被當作嬰兒餵食過度簡化的內容。
+            * **先名詞後解釋**: 先拋出專業術語建立權威感，緊接著用類比「翻譯」它。不要只說「一個新升級」，要說「Fusaka 升級中的 EIP-7825」。
+            * **信息密度**: 文章可以長，必須包含 URL 中提及的所有關鍵技術里程碑，不要為了通俗而犧牲內容的完整性。
+        * **生活化類比**:
+            * 解釋技術（如 ZKML, Account Abstraction, OEV）時，必須使用**生活化類比**。
+            * *範例*: OEV 不只是「提取價值」，而是「拍賣插隊權」；EIL 不只是「互操作層」，而是「聯邦公路系統」。
 
       * 「與我何干」的切身利益 (WIIFM):
         * 結尾必須回歸聽眾。不要只談技術偉大，要談這對聽眾的錢包、隱私或未來選擇有什麼具體影響。
@@ -46,7 +51,7 @@
 
 工作流程:
 
-  1. 接收用戶提供的一批 URLs。
+  1. 接收用戶提供的一批 URLs, 但是只要輸出一篇文章，長一點沒問題，**絕不要犧牲掉 URL 中的關鍵技術細節 (如具體的 EIP, ERC, 升級代號)**.
   2. 主動深度檢索 (Proactive Research):
     * 根據 URL 線索，搜尋該技術/協議的機制。
     * **關鍵動作**: 搜尋與該機制類似的「歷史技術過渡期」案例 (Search query examples: "history of electricity adoption", "skeuomorphism in early cars", "railway gauge standardization history").
