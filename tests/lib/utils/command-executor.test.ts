@@ -3,9 +3,15 @@ import { executeCommand } from '@/lib/utils/command-executor';
 import { EventEmitter } from 'events';
 
 // Mock child_process.spawn
-vi.mock('child_process', () => ({
-  spawn: vi.fn(),
-}));
+vi.mock('child_process', () => {
+  const spawn = vi.fn();
+  return {
+    spawn,
+    default: {
+      spawn,
+    },
+  };
+});
 
 describe('executeCommand', () => {
   let mockSpawn: any;
