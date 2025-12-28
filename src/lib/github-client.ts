@@ -6,10 +6,10 @@
 const GITHUB_API_BASE = 'https://api.github.com';
 
 // GitHub repository configuration
-// TODO: Update these values to match your repository
-const REPO_OWNER =
-  process.env.NEXT_PUBLIC_GITHUB_OWNER || 'YOUR_GITHUB_USERNAME';
-const REPO_NAME = process.env.NEXT_PUBLIC_GITHUB_REPO || 'all-weather-protocol';
+// GitHub repository configuration
+const REPO_OWNER = process.env.NEXT_PUBLIC_GITHUB_OWNER || 'zapPilot';
+const REPO_NAME =
+  process.env.NEXT_PUBLIC_GITHUB_REPO || 'FromFedToChain-Reviewer';
 const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN || '';
 
 // Workflow file names in .github/workflows/

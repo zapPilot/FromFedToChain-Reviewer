@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import type {
   KnowledgeConcept,
-  KnowledgeIndex,
+  KnowledgeIndex as IKnowledgeIndex,
   KnowledgeRelationships,
   SearchOptions,
   KnowledgeStats,
@@ -10,6 +10,8 @@ import type {
   ConceptSummary,
 } from '@/types/knowledge';
 import { getErrorMessage } from './utils/error-handler';
+import { KnowledgeIndex } from './knowledge/KnowledgeIndex';
+import { ConceptStorage } from './knowledge/ConceptStorage';
 
 /**
  * KnowledgeManager - Manages knowledge concept indexing
@@ -32,18 +34,26 @@ export class KnowledgeManager {
     'relationships.json'
   );
 
+  // Components
+  private static indexManager = new KnowledgeIndex(KnowledgeManager.INDEX_FILE);
+  private static storageManager = new ConceptStorage(
+    KnowledgeManager.CONCEPTS_DIR
+  );
+
   // Initialize knowledge base structure
   static async initialize(): Promise<void> {
     try {
       await fs.mkdir(this.KNOWLEDGE_DIR, { recursive: true });
-      await fs.mkdir(this.CONCEPTS_DIR, { recursive: true });
+      await this.storageManager.initialize();
 
-      // Check if index file exists, create if not
-      try {
-        await fs.access(this.INDEX_FILE);
-      } catch (error) {
-        await this.createEmptyIndex();
-      }
+      // Initialize index
+      await this.indexManager.initialize([
+        '經濟學',
+        '技術',
+        '商業',
+        '政策',
+        '歷史',
+      ]);
 
       // Check if relationships file exists, create if not
       try {
@@ -58,17 +68,6 @@ export class KnowledgeManager {
         `Failed to initialize knowledge index: ${getErrorMessage(error)}`
       );
     }
-  }
-
-  // Create empty index file
-  static async createEmptyIndex(): Promise<void> {
-    const emptyIndex: KnowledgeIndex = {
-      concepts: [],
-      categories: ['經濟學', '技術', '商業', '政策', '歷史'],
-      total_concepts: 0,
-      last_updated: new Date().toISOString(),
-    };
-    await fs.writeFile(this.INDEX_FILE, JSON.stringify(emptyIndex, null, 2));
   }
 
   // Create empty relationships file
@@ -88,30 +87,6 @@ export class KnowledgeManager {
       this.RELATIONSHIPS_FILE,
       JSON.stringify(emptyRelationships, null, 2)
     );
-  }
-
-  // Read index file
-  static async readIndex(): Promise<KnowledgeIndex> {
-    try {
-      const indexContent = await fs.readFile(this.INDEX_FILE, 'utf-8');
-      return JSON.parse(indexContent) as KnowledgeIndex;
-    } catch (error) {
-      throw new Error(
-        `Failed to read knowledge index: ${getErrorMessage(error)}`
-      );
-    }
-  }
-
-  // Update index file
-  static async updateIndex(indexData: KnowledgeIndex): Promise<void> {
-    try {
-      indexData.last_updated = new Date().toISOString();
-      await fs.writeFile(this.INDEX_FILE, JSON.stringify(indexData, null, 2));
-    } catch (error) {
-      throw new Error(
-        `Failed to update knowledge index: ${getErrorMessage(error)}`
-      );
-    }
   }
 
   // Create new concept
@@ -154,19 +129,15 @@ export class KnowledgeManager {
     };
 
     // Save concept file
-    const conceptFile = path.join(this.CONCEPTS_DIR, `${concept.name}.json`);
-    await fs.writeFile(conceptFile, JSON.stringify(concept, null, 2));
+    await this.storageManager.save(concept);
 
     // Update index
-    const index = await this.readIndex();
-    index.concepts.push({
+    await this.indexManager.addConcept({
       id: concept.id,
       name: concept.name,
       category: concept.category,
       first_introduced: concept.first_introduced,
     });
-    index.total_concepts = index.concepts.length;
-    await this.updateIndex(index);
 
     console.log(`✅ Created concept: ${concept.name} (${concept.id})`);
     return concept;
@@ -178,7 +149,7 @@ export class KnowledgeManager {
   ): Promise<KnowledgeConcept | null> {
     try {
       // First try to find concept from index
-      const index = await this.readIndex();
+      const index = await this.indexManager.read();
       const conceptInfo = index.concepts.find(
         (c) => c.id === identifier || c.name === identifier
       );
@@ -188,12 +159,7 @@ export class KnowledgeManager {
       }
 
       // Read full concept file
-      const conceptFile = path.join(
-        this.CONCEPTS_DIR,
-        `${conceptInfo.name}.json`
-      );
-      const conceptContent = await fs.readFile(conceptFile, 'utf-8');
-      return JSON.parse(conceptContent) as KnowledgeConcept;
+      return await this.storageManager.read(conceptInfo.name);
     } catch (error) {
       return null;
     }
@@ -207,7 +173,7 @@ export class KnowledgeManager {
     const { category = null, fuzzy = true, includeContext = false } = options;
 
     try {
-      const index = await this.readIndex();
+      const index = await this.indexManager.read();
       const results: KnowledgeConcept[] = [];
 
       for (const conceptInfo of index.concepts) {
@@ -217,6 +183,8 @@ export class KnowledgeManager {
         }
 
         // Read full concept data
+        // Optimization: Could we avoid reading full file if not needing context?
+        // But we need definition/tags for search.
         const concept = await this.getConcept(conceptInfo.id);
         if (!concept) continue;
 
@@ -278,8 +246,7 @@ export class KnowledgeManager {
       concept.updated_at = new Date().toISOString();
 
       // Save updated concept
-      const conceptFile = path.join(this.CONCEPTS_DIR, `${concept.name}.json`);
-      await fs.writeFile(conceptFile, JSON.stringify(concept, null, 2));
+      await this.storageManager.save(concept);
 
       console.log(`📎 Added reference: ${concept.name} -> ${articleId}`);
     }
@@ -301,8 +268,7 @@ export class KnowledgeManager {
       concept.updated_at = new Date().toISOString();
 
       // Save updated concept
-      const conceptFile = path.join(this.CONCEPTS_DIR, `${concept.name}.json`);
-      await fs.writeFile(conceptFile, JSON.stringify(concept, null, 2));
+      await this.storageManager.save(concept);
 
       console.log(`🗑️ Removed reference: ${concept.name} -> ${articleId}`);
     }
@@ -313,7 +279,7 @@ export class KnowledgeManager {
     category: string | null = null
   ): Promise<ConceptSummary[]> {
     try {
-      const index = await this.readIndex();
+      const index = await this.indexManager.read();
       let concepts = index.concepts;
 
       if (category) {
@@ -329,7 +295,7 @@ export class KnowledgeManager {
   // Get all categories
   static async getCategories(): Promise<string[]> {
     try {
-      const index = await this.readIndex();
+      const index = await this.indexManager.read();
       return index.categories;
     } catch (error) {
       throw new Error(`Failed to get categories: ${getErrorMessage(error)}`);
@@ -354,21 +320,12 @@ export class KnowledgeManager {
     };
 
     // If name changed, need to rename file
-    const oldFile = path.join(this.CONCEPTS_DIR, `${concept.name}.json`);
-    const newFile = path.join(this.CONCEPTS_DIR, `${updatedConcept.name}.json`);
-
-    await fs.writeFile(newFile, JSON.stringify(updatedConcept, null, 2));
-
     if (concept.name !== updatedConcept.name) {
-      await fs.unlink(oldFile);
-
-      // Update name in index
-      const index = await this.readIndex();
-      const conceptIndex = index.concepts.findIndex((c) => c.id === conceptId);
-      if (conceptIndex > -1) {
-        index.concepts[conceptIndex].name = updatedConcept.name;
-        await this.updateIndex(index);
-      }
+      await this.storageManager.delete(concept.name);
+      await this.storageManager.save(updatedConcept);
+      await this.indexManager.updateConceptName(conceptId, updatedConcept.name);
+    } else {
+      await this.storageManager.save(updatedConcept);
     }
 
     console.log(`✅ Updated concept: ${updatedConcept.name}`);
@@ -383,14 +340,10 @@ export class KnowledgeManager {
     }
 
     // Delete concept file
-    const conceptFile = path.join(this.CONCEPTS_DIR, `${concept.name}.json`);
-    await fs.unlink(conceptFile);
+    await this.storageManager.delete(concept.name);
 
     // Remove from index
-    const index = await this.readIndex();
-    index.concepts = index.concepts.filter((c) => c.id !== conceptId);
-    index.total_concepts = index.concepts.length;
-    await this.updateIndex(index);
+    await this.indexManager.removeConcept(conceptId);
 
     console.log(`🗑️ Deleted concept: ${concept.name}`);
   }
@@ -398,7 +351,7 @@ export class KnowledgeManager {
   // Get statistics
   static async getStats(): Promise<KnowledgeStats> {
     try {
-      const index = await this.readIndex();
+      const index = await this.indexManager.read();
       const categoryStats: Record<string, number> = {};
 
       for (const concept of index.concepts) {

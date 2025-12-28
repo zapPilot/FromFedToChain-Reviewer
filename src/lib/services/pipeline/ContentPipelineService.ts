@@ -11,6 +11,7 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { executeCommand } from '@/lib/utils/command-executor';
 import { getErrorMessage } from '@/lib/utils/error-handler';
 import { getAudioLanguages, PATHS } from '../../../../config/languages';
+import { R2Utils } from './R2Utils';
 
 interface ContentUploadResult {
   [language: string]: {
@@ -207,26 +208,14 @@ export class ContentPipelineService {
       }
 
       // Parse rclone ls output: "  size filename" format
-      const lines = (result.output || '').split('\n').filter((l) => l.trim());
-      const segmentFiles: string[] = [];
-
-      for (const line of lines) {
-        const match = line.match(/^\s*\d+\s+(.+\.ts)$/);
-        if (match) {
-          segmentFiles.push(match[1]);
-        }
-      }
+      const segmentFiles = R2Utils.parseRcloneLsOutput(result.output || '');
 
       // Sort segments by number (segment000.ts, segment001.ts, etc.)
-      segmentFiles.sort((a, b) => {
-        const numA = parseInt(a.match(/(\d+)/)?.[1] || '0');
-        const numB = parseInt(b.match(/(\d+)/)?.[1] || '0');
-        return numA - numB;
-      });
+      const sortedFiles = R2Utils.sortSegmentFiles(segmentFiles);
 
       // Build full URLs
       const baseUrl = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}`;
-      return segmentFiles.map((f) => `${baseUrl}/${f}`);
+      return sortedFiles.map((f) => `${baseUrl}/${f}`);
     } catch (error) {
       console.warn(`⚠️ Error listing R2 segments: ${getErrorMessage(error)}`);
       return [];

@@ -8,6 +8,7 @@ import {
 } from '@/types/content';
 import { ContentSchema } from './ContentSchema';
 import { getSupabaseAdmin } from './supabase';
+import { getErrorMessage } from './utils/error-handler';
 
 /**
  * ContentManager - Manages content operations using Supabase as primary storage
@@ -92,7 +93,7 @@ export class ContentManager {
       .single();
 
     if (error) {
-      throw new Error(`Failed to create content: ${error.message}`);
+      throw new Error(`Failed to create content: ${getErrorMessage(error)}`);
     }
 
     return data as ContentItem;
@@ -149,7 +150,7 @@ export class ContentManager {
     const { data, error } = await query.order('date', { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to list content: ${error.message}`);
+      throw new Error(`Failed to list content: ${getErrorMessage(error)}`);
     }
 
     return (data || []) as ContentItem[];
@@ -211,7 +212,7 @@ export class ContentManager {
       .single();
 
     if (error) {
-      throw new Error(`Failed to update content: ${error.message}`);
+      throw new Error(`Failed to update content: ${getErrorMessage(error)}`);
     }
 
     return data as ContentItem;
@@ -331,7 +332,7 @@ export class ContentManager {
       .single();
 
     if (error) {
-      throw new Error(`Failed to add translation: ${error.message}`);
+      throw new Error(`Failed to add translation: ${getErrorMessage(error)}`);
     }
 
     return data as ContentItem;
@@ -370,7 +371,9 @@ export class ContentManager {
       .eq('id', id);
 
     if (error) {
-      throw new Error(`Failed to get languages for content: ${error.message}`);
+      throw new Error(
+        `Failed to get languages for content: ${getErrorMessage(error)}`
+      );
     }
 
     return (data || []) as ContentItem[];
@@ -402,7 +405,9 @@ export class ContentManager {
     const { data, error } = await query;
 
     if (error) {
-      throw new Error(`Failed to get review history: ${error.message}`);
+      throw new Error(
+        `Failed to get review history: ${getErrorMessage(error)}`
+      );
     }
 
     return (data || []) as ContentItem[];
@@ -423,23 +428,30 @@ export class ContentManager {
       .order('created_at', { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch pending content: ${error.message}`);
+      throw new Error(
+        `Failed to fetch pending content: ${getErrorMessage(error)}`
+      );
     }
 
     return (
-      rawContent?.filter((item: any) => {
-        if (
-          item.status === 'reviewed' ||
-          item.status === 'approved' ||
-          item.status === 'in_progress'
-        ) {
-          return true;
-        }
-        if (item.status === 'draft') {
-          return item.feedback?.content_review?.status === 'accepted';
-        }
-        return false;
-      }) || []
+      rawContent?.filter((item: any) => this._isPendingPipelineItem(item)) || []
     );
+  }
+
+  /**
+   * Check if a content item is pending pipeline processing
+   */
+  private static _isPendingPipelineItem(item: any): boolean {
+    if (
+      item.status === 'reviewed' ||
+      item.status === 'approved' ||
+      item.status === 'in_progress'
+    ) {
+      return true;
+    }
+    if (item.status === 'draft') {
+      return item.feedback?.content_review?.status === 'accepted';
+    }
+    return false;
   }
 }

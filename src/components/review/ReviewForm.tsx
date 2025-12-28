@@ -26,6 +26,8 @@ export function ReviewForm({
   onSubmit,
   isSubmitting,
 }: ReviewFormProps) {
+  // Note: Toast notifications for success/failure are handled by the parent component (ReviewPage)
+  // or by the caller of onSubmit. We can add additional visual feedback if needed here.
   const {
     register,
     handleSubmit,

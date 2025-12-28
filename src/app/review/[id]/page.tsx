@@ -8,6 +8,7 @@ import { ReviewForm } from '@/components/review/ReviewForm';
 import { NavigationButtons } from '@/components/review/NavigationButtons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ReviewFormData } from '@/lib/validations';
+import { toast } from 'sonner';
 
 export default function ContentDetailPage() {
   const params = useParams();
@@ -32,6 +33,8 @@ export default function ContentDetailPage() {
         },
       });
 
+      toast.success('Review submitted successfully!');
+
       // Navigate to next content or back to queue
       if (navigation?.next) {
         router.push(`/review/${navigation.next}`);
@@ -39,10 +42,9 @@ export default function ContentDetailPage() {
         router.push('/review');
       }
     } catch (error) {
-      console.error('Error submitting review:', error);
-      alert(
-        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      toast.error('Failed to submit review', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   };
 

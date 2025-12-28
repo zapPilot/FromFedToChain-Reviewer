@@ -22,6 +22,15 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+import { toast } from 'sonner';
+
 import { useContentDetail, useReviewSubmit } from '@/hooks/useContentDetail';
 
 describe('ContentDetailPage', () => {
@@ -400,6 +409,12 @@ describe('ContentDetailPage', () => {
       });
 
       await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith(
+          'Review submitted successfully!'
+        );
+      });
+
+      await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/review/2025-01-02-next');
       });
     });
@@ -494,8 +509,7 @@ describe('ContentDetailPage', () => {
       });
     });
 
-    it('shows alert on submission error', async () => {
-      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    it('shows toast error on submission error', async () => {
       const mockError = new Error('Validation failed');
       mockMutateAsync.mockRejectedValue(mockError);
 
@@ -525,14 +539,13 @@ describe('ContentDetailPage', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(alertSpy).toHaveBeenCalledWith('Error: Validation failed');
+        expect(toast.error).toHaveBeenCalledWith('Failed to submit review', {
+          description: 'Validation failed',
+        });
       });
-
-      alertSpy.mockRestore();
     });
 
     it('does not navigate on submission error', async () => {
-      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
       mockMutateAsync.mockRejectedValue(new Error('Server error'));
 
       vi.mocked(useContentDetail).mockReturnValue({
@@ -563,8 +576,6 @@ describe('ContentDetailPage', () => {
 
       // Should NOT navigate on error
       expect(mockPush).not.toHaveBeenCalled();
-
-      alertSpy.mockRestore();
     });
   });
 
