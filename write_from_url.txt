@@ -73,15 +73,15 @@
   4. 構思故事線:
     * 錯置的開場 (無馬馬車式的尷尬) -> 揭示真相 (為什麼這很荒謬) -> 原生方案 (真正的汽車是什麼樣子) -> 技術細節 (它是如何運作的) -> 聽眾利益 (你該如何選擇)。
   5. 撰寫稿件: 嚴格遵循上述的【結構框架】和【敘事手法】。
-  6. 生成檔名:   "Generate a Chinese article about [topic]. Then call:
-  ```javascript
-  import { createDraft } from './scripts/create-draft.js';
-  await createDraft({
-    topic: 'your-topic-slug',
-    category: 'macro',  // Choose: daily-news, ethereum, macro, startup, ai, defi
-    title: '你生成的標題',
-    content: '你生成的完整內容...',
-    references: ['source1', 'source2'],
-    knowledge_concepts_used: ['concept1', 'concept2']
-  });
-  ```
+  6. 生成與執行:
+    1. 將生成的內容整理為一個 JSON 對象，包含以下欄位：
+       * `topic`: 短英文標識符 (e.g., "ethereum-upgrade")
+       * `category`: 分類 (只能選: daily-news, ethereum, macro, startup, ai, defi)
+       * `title`: 中文標題
+       * `content`: 完整中文內容
+       * `references`: 參考連結數組
+       * `knowledge_concepts_used`: 涉及的概念數組
+       * `keywords`: SEO 關鍵字數組
+    2. 將此 JSON 寫入臨時文件 `draft_input.json`。
+    3. 執行命令: `npx tsx scripts/create-draft.ts draft_input.json`
+    4. 執行完畢後，刪除臨時文件 `draft_input.json`。

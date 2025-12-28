@@ -15,6 +15,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Valid categories
 type Category = 'daily-news' | 'ethereum' | 'macro' | 'startup' | 'ai' | 'defi';
@@ -62,5 +63,28 @@ async function createDraft(params: DraftParams): Promise<void> {
   return;
 }
 
-// Export for use in AI-generated scripts
+// Allow running directly via CLI
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  (async () => {
+    const inputPath = process.argv[2];
+    if (!inputPath) {
+      console.error('❌ Error: Please provide a path to the input JSON file.');
+      console.error(
+        'Usage: npx tsx scripts/create-draft.ts <path-to-json-input>'
+      );
+      process.exit(1);
+    }
+
+    try {
+      const content = await fs.readFile(inputPath, 'utf-8');
+      const params = JSON.parse(content) as DraftParams;
+      await createDraft(params);
+    } catch (error) {
+      console.error('❌ Error processing draft:', error);
+      process.exit(1);
+    }
+  })();
+}
+
+// Export for use in other scripts
 export { createDraft, type DraftParams, type Category };
