@@ -12,6 +12,7 @@ import { executeCommand } from '@/lib/utils/command-executor';
 import { getErrorMessage } from '@/lib/utils/error-handler';
 import { getAudioLanguages, PATHS } from '../../../../config/languages';
 import { R2Utils } from './R2Utils';
+import { R2_CONFIG } from '@/config/r2';
 
 interface ContentUploadResult {
   [language: string]: {
@@ -20,11 +21,6 @@ interface ContentUploadResult {
     error?: string;
   };
 }
-
-// R2 configuration (migrated from V1 CloudflareR2Service.js)
-const R2_BUCKET = 'fromfedtochain';
-const R2_PUBLIC_URL =
-  'https://fromfedtochain.1352ed9cb1e236fe232f67ff3a8e9850.r2.cloudflarestorage.com';
 
 export class ContentPipelineService {
   static CONTENT_DIR = PATHS.CONTENT_ROOT;
@@ -95,7 +91,7 @@ export class ContentPipelineService {
         );
 
         // Derive streaming URL for M3U8 playlist
-        const m3u8Url = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}/playlist.m3u8`;
+        const m3u8Url = `${R2_CONFIG.PUBLIC_URL}/audio/${language}/${category}/${contentId}/playlist.m3u8`;
 
         // Build complete V1-compatible content JSON structure (exact match)
         const contentJson = {
@@ -124,7 +120,7 @@ export class ContentPipelineService {
         await fs.writeFile(jsonPath, JSON.stringify(contentJson, null, 2));
 
         // R2 destination - use copyto for exact path (no folder creation)
-        const r2Destination = `r2:${R2_BUCKET}/content/${language}/${category}/${contentId}.json`;
+        const r2Destination = `r2:${R2_CONFIG.BUCKET}/content/${language}/${category}/${contentId}.json`;
 
         // Build rclone command - use 'copyto' instead of 'copy' to avoid folder creation
         const rcloneArgs = ['copyto', jsonPath, r2Destination, '-v'];
@@ -137,7 +133,7 @@ export class ContentPipelineService {
         }
 
         // Construct public URL
-        const contentUrl = `${R2_PUBLIC_URL}/content/${language}/${category}/${contentId}.json`;
+        const contentUrl = `${R2_CONFIG.PUBLIC_URL}/content/${language}/${category}/${contentId}.json`;
 
         // Update database status to 'content'
         const { error: updateError } = await supabase
@@ -181,7 +177,7 @@ export class ContentPipelineService {
     language: string,
     category: string
   ): string {
-    return `${R2_PUBLIC_URL}/content/${language}/${category}/${contentId}.json`;
+    return `${R2_CONFIG.PUBLIC_URL}/content/${language}/${category}/${contentId}.json`;
   }
 
   /**
@@ -196,7 +192,7 @@ export class ContentPipelineService {
     category: string,
     contentId: string
   ): Promise<string[]> {
-    const r2Path = `r2:${R2_BUCKET}/audio/${language}/${category}/${contentId}/`;
+    const r2Path = `r2:${R2_CONFIG.BUCKET}/audio/${language}/${category}/${contentId}/`;
 
     try {
       // Use rclone ls to list files in the R2 directory
@@ -214,7 +210,7 @@ export class ContentPipelineService {
       const sortedFiles = R2Utils.sortSegmentFiles(segmentFiles);
 
       // Build full URLs
-      const baseUrl = `${R2_PUBLIC_URL}/audio/${language}/${category}/${contentId}`;
+      const baseUrl = `${R2_CONFIG.PUBLIC_URL}/audio/${language}/${category}/${contentId}`;
       return sortedFiles.map((f) => `${baseUrl}/${f}`);
     } catch (error) {
       console.warn(`⚠️ Error listing R2 segments: ${getErrorMessage(error)}`);

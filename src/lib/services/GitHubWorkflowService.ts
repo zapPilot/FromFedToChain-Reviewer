@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import { WorkflowName } from '@/types/github';
 
 export class GitHubWorkflowService {
   private static octokit = new Octokit({
@@ -33,7 +34,7 @@ export class GitHubWorkflowService {
    * Trigger a GitHub Actions workflow
    */
   static async triggerWorkflow(
-    workflowId: string,
+    workflowId: WorkflowName,
     inputs: Record<string, string>
   ) {
     this.validateConfig();

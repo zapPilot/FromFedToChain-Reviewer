@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { ContentItem, Category } from '@/types/content';
 import { reviewFormSchema, ReviewFormData } from '@/lib/validations';
 import { ContentSchema } from '@/lib/ContentSchema';
@@ -31,7 +31,7 @@ export function ReviewForm({
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors },
   } = useForm<ReviewFormData>({
     defaultValues: {
@@ -41,7 +41,7 @@ export function ReviewForm({
     },
   });
 
-  const action = watch('action');
+  const action = useWatch({ control, name: 'action' });
   const categories = ContentSchema.getCategories();
 
   return (

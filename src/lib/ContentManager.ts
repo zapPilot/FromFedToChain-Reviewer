@@ -7,42 +7,21 @@ import {
   StreamingUrls,
 } from '@/types/content';
 import { ContentSchema } from './ContentSchema';
-import { getSupabaseAdmin } from './supabase';
-import { getErrorMessage } from './utils/error-handler';
+import { ContentReadService } from './services/ContentReadService';
+import { ContentWriteService } from './services/ContentWriteService';
+import { ContentReviewService } from './services/ContentReviewService';
 
 /**
- * ContentManager - Manages content operations using Supabase as primary storage
- *
- * All content is stored in review_web.content table with composite key (id, language).
+ * ContentManager - Manages content operations (Facade)
+ * Delegates to specialized services.
  */
 export class ContentManager {
-  /**
-   * Read content by ID and language from Supabase
-   */
-  private static async _readFromSupabase(
-    id: string,
-    language: string
-  ): Promise<ContentItem> {
-    const { data, error } = await getSupabaseAdmin()
-      .from('content')
-      .select('*')
-      .eq('id', id)
-      .eq('language', language)
-      .single();
-
-    if (error || !data) {
-      throw new Error(`Content not found in ${language}: ${id}`);
-    }
-
-    return data as ContentItem;
-  }
-
   /**
    * Read content by ID (searches across all languages if not specified)
    */
   static async read(id: string, language?: string): Promise<ContentItem> {
     if (language) {
-      return this._readFromSupabase(id, language);
+      return ContentReadService.readFromSupabase(id, language);
     }
 
     // Search all languages for the content
@@ -50,7 +29,7 @@ export class ContentManager {
 
     for (const lang of languages) {
       try {
-        return await this._readFromSupabase(id, lang);
+        return await ContentReadService.readFromSupabase(id, lang);
       } catch (error) {
         // Continue searching in other languages
         continue;
@@ -61,7 +40,7 @@ export class ContentManager {
   }
 
   /**
-   * Create new content in Supabase
+   * Create new content
    */
   static async create(
     id: string,
@@ -73,7 +52,7 @@ export class ContentManager {
     framework = '',
     knowledge_concepts_used: string[] = []
   ): Promise<ContentItem> {
-    const contentData = ContentSchema.createContent(
+    return ContentWriteService.create(
       id,
       category,
       language,
@@ -83,20 +62,6 @@ export class ContentManager {
       framework,
       knowledge_concepts_used
     );
-
-    ContentSchema.validate(contentData);
-
-    const { data, error } = await getSupabaseAdmin()
-      .from('content')
-      .insert(contentData)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to create content: ${getErrorMessage(error)}`);
-    }
-
-    return data as ContentItem;
   }
 
   /**
@@ -137,23 +102,7 @@ export class ContentManager {
     status?: Status | null,
     language?: string | null
   ): Promise<ContentItem[]> {
-    let query = getSupabaseAdmin().from('content').select('*');
-
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    if (language) {
-      query = query.eq('language', language);
-    }
-
-    const { data, error } = await query.order('date', { ascending: false });
-
-    if (error) {
-      throw new Error(`Failed to list content: ${getErrorMessage(error)}`);
-    }
-
-    return (data || []) as ContentItem[];
+    return ContentReadService.list(status, language);
   }
 
   /**
@@ -167,55 +116,18 @@ export class ContentManager {
    * Get source content for review (excludes rejected content)
    */
   static async getSourceForReview(): Promise<ContentItem[]> {
-    const draftContent = await this.list('draft', 'zh-TW');
-
-    // Filter out content that has been reviewed (accepted or rejected)
-    return draftContent.filter((content) => {
-      const review = content.feedback?.content_review;
-
-      // If no review exists, it needs review
-      if (!review) return true;
-
-      // If review status is pending, it needs review
-      if (review.status === 'pending') return true;
-
-      // If accepted or rejected, it does NOT need review
-      if (review.status === 'accepted' || review.status === 'rejected')
-        return false;
-
-      return true;
-    });
+    return ContentReviewService.getSourceForReview();
   }
 
   /**
-   * Update content in Supabase
+   * Update content
    */
   static async update(
     id: string,
     updates: Partial<ContentItem>,
     language?: string | null
   ): Promise<ContentItem> {
-    // Read existing content to get language if not specified
-    const existing = await this.read(id, language || undefined);
-
-    const updatedContent: Partial<ContentItem> = {
-      ...updates,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await getSupabaseAdmin()
-      .from('content')
-      .update(updatedContent)
-      .eq('id', id)
-      .eq('language', existing.language)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to update content: ${getErrorMessage(error)}`);
-    }
-
-    return data as ContentItem;
+    return ContentWriteService.update(id, updates, language);
   }
 
   /**
@@ -242,16 +154,10 @@ export class ContentManager {
     id: string,
     category: Category
   ): Promise<ContentItem> {
-    // Read the content first
     const content = await this.readSource(id);
-    const oldCategory = content.category;
-
-    // If category hasn't changed, just return
-    if (oldCategory === category) {
+    if (content.category === category) {
       return content;
     }
-
-    // Update the category in Supabase
     return this.update(id, { category }, 'zh-TW');
   }
 
@@ -265,14 +171,12 @@ export class ContentManager {
     reviewer: string,
     comments: string
   ): Promise<ContentItem> {
-    // Validate that rejection requires feedback
     if (status === 'rejected' && (!comments || comments.trim() === '')) {
       throw new Error('Feedback comment is required when rejecting content');
     }
 
     const contentData = await this.read(id, 'zh-TW');
 
-    // Build review feedback
     const feedbackData: ContentReviewFeedback = {
       status,
       score,
@@ -281,7 +185,6 @@ export class ContentManager {
       comments: comments || 'Approved for translation',
     };
 
-    // Update feedback in content
     const updatedFeedback = {
       ...contentData.feedback,
       content_review: feedbackData,
@@ -310,32 +213,26 @@ export class ContentManager {
   ) {
     const sourceContent = await this.read(id, 'zh-TW');
 
-    const translation = ContentSchema.createContent(
+    // Use ContentWriteService.create directly by passing args
+    return ContentWriteService.create(
       id,
       sourceContent.category,
       targetLanguage,
       title,
       body,
       sourceContent.references,
-      framework
-    );
-
-    translation.status = 'translated';
-    if (knowledgeConcepts.length) {
-      translation.knowledge_concepts_used = knowledgeConcepts;
-    }
-
-    const { data, error } = await getSupabaseAdmin()
-      .from('content')
-      .insert(translation)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to add translation: ${getErrorMessage(error)}`);
-    }
-
-    return data as ContentItem;
+      framework,
+      knowledgeConcepts
+    ).then(async (newContent) => {
+      // The status override to 'translated' needs to happen.
+      // ContentWriteService.create creates as 'draft'.
+      // So we need to update it immediately.
+      return ContentWriteService.update(
+        id,
+        { status: 'translated' },
+        targetLanguage
+      );
+    });
   }
 
   /**
@@ -365,18 +262,19 @@ export class ContentManager {
    * Get all language versions for a content ID
    */
   static async getAllLanguagesForId(id: string) {
-    const { data, error } = await getSupabaseAdmin()
-      .from('content')
-      .select('*')
-      .eq('id', id);
+    const languages = ContentSchema.getAllLanguages();
+    const results: ContentItem[] = [];
 
-    if (error) {
-      throw new Error(
-        `Failed to get languages for content: ${getErrorMessage(error)}`
-      );
+    for (const lang of languages) {
+      try {
+        // Use ContentReadService directly
+        const item = await ContentReadService.readFromSupabase(id, lang);
+        results.push(item);
+      } catch (e) {
+        // ignore
+      }
     }
-
-    return (data || []) as ContentItem[];
+    return results;
   }
 
   /**
@@ -391,67 +289,14 @@ export class ContentManager {
    * Get review history (content with feedback)
    */
   static async getReviewHistory(limit?: number): Promise<ContentItem[]> {
-    let query = getSupabaseAdmin()
-      .from('content')
-      .select('*')
-      .eq('language', 'zh-TW')
-      .not('feedback->content_review', 'is', null)
-      .order('feedback->content_review->timestamp', { ascending: false });
-
-    if (limit) {
-      query = query.limit(limit);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      throw new Error(
-        `Failed to get review history: ${getErrorMessage(error)}`
-      );
-    }
-
-    return (data || []) as ContentItem[];
+    return ContentReadService.getReviewHistory(limit);
   }
 
   /**
    * Get content items pending pipeline processing
-   * Criteria:
-   * 1. Status is 'reviewed' (content accepted during review)
-   * 2. Status is 'approved' or 'in_progress' (legacy statuses)
-   * 3. OR Status is 'draft' with feedback.content_review.status === 'accepted'
    */
   static async getPendingPipelineItems(): Promise<ContentItem[]> {
-    const { data: rawContent, error } = await getSupabaseAdmin()
-      .from('content')
-      .select('*')
-      .in('status', ['reviewed', 'approved', 'in_progress', 'draft'])
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw new Error(
-        `Failed to fetch pending content: ${getErrorMessage(error)}`
-      );
-    }
-
-    return (
-      rawContent?.filter((item: any) => this._isPendingPipelineItem(item)) || []
-    );
-  }
-
-  /**
-   * Check if a content item is pending pipeline processing
-   */
-  private static _isPendingPipelineItem(item: any): boolean {
-    if (
-      item.status === 'reviewed' ||
-      item.status === 'approved' ||
-      item.status === 'in_progress'
-    ) {
-      return true;
-    }
-    if (item.status === 'draft') {
-      return item.feedback?.content_review?.status === 'accepted';
-    }
-    return false;
+    const rawContent = await ContentReadService.getPendingPipelineItems();
+    return ContentReviewService.filterPendingPipelineItems(rawContent);
   }
 }

@@ -26,7 +26,10 @@ export async function POST(request: NextRequest) {
 
   try {
     // Define pipeline workflow sequence
-    const workflows = [
+    const workflows: {
+      step: string;
+      workflow: import('@/types/github').WorkflowName;
+    }[] = [
       { step: 'translate', workflow: 'pipeline-translate.yml' },
       { step: 'audio', workflow: 'pipeline-audio.yml' },
       { step: 'm3u8', workflow: 'pipeline-m3u8.yml' },

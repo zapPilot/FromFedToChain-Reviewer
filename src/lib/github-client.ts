@@ -3,43 +3,27 @@
  * Used for GitHub Pages + GitHub Actions architecture
  */
 
+import {
+  WorkflowName,
+  WORKFLOWS,
+  WorkflowRun,
+  TriggerWorkflowParams,
+} from '@/types/github';
+
 const GITHUB_API_BASE = 'https://api.github.com';
 
-// GitHub repository configuration
 // GitHub repository configuration
 const REPO_OWNER = process.env.NEXT_PUBLIC_GITHUB_OWNER || 'zapPilot';
 const REPO_NAME =
   process.env.NEXT_PUBLIC_GITHUB_REPO || 'FromFedToChain-Reviewer';
 const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN || '';
 
-// Workflow file names in .github/workflows/
-export const WORKFLOWS = {
-  UNIFIED: 'pipeline-unified.yml', // New unified workflow with all stages
-} as const;
-
-export type WorkflowName = (typeof WORKFLOWS)[keyof typeof WORKFLOWS];
-
-export interface WorkflowRun {
-  id: number;
-  name: string;
-  status: 'queued' | 'in_progress' | 'completed';
-  conclusion: 'success' | 'failure' | 'cancelled' | 'skipped' | null;
-  created_at: string;
-  updated_at: string;
-  html_url: string;
-  run_started_at: string | null;
-}
-
-export interface WorkflowLog {
-  content: string;
-}
-
-export interface TriggerWorkflowParams {
-  contentId: string;
-  language?: string;
-  category?: string;
-  start_stage?: string;
-}
+export {
+  WORKFLOWS,
+  type WorkflowName,
+  type WorkflowRun,
+  type TriggerWorkflowParams,
+};
 
 class GitHubClient {
   private baseUrl: string;

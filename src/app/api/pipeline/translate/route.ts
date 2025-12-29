@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GitHubWorkflowService } from '@/lib/services/GitHubWorkflowService';
+import { WORKFLOWS } from '@/types/github';
 
 /**
  * POST /api/pipeline/translate
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await GitHubWorkflowService.triggerWorkflow(
-      'pipeline-translate.yml',
+      WORKFLOWS.TRANSLATE,
       inputs
     );
 
