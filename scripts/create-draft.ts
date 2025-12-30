@@ -1,6 +1,9 @@
 /**
  * Create a content draft and save to content-drafts/
  *
+ * NOTE: This script is actively used by prompts defined in write_from_url.toml
+ * It's not referenced in package.json, but is invoked programmatically
+ *
  * Usage in AI prompts:
  * "Generate a title, content, and choose a category, then call:
  *  await createDraft({
