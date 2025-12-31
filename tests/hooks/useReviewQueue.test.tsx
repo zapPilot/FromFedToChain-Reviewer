@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useReviewQueue } from '@/hooks/useReviewQueue';
+import { useReviewQueue, useReviewStats } from '@/hooks/useReviewQueue';
 import { apiClient } from '@/lib/api-client';
 import { TestUtils } from '../setup';
 
@@ -9,6 +9,7 @@ import { TestUtils } from '../setup';
 vi.mock('@/lib/api-client', () => ({
   apiClient: {
     getPendingContent: vi.fn(),
+    getStats: vi.fn(),
   },
 }));
 
@@ -321,6 +322,166 @@ describe('useReviewQueue', () => {
 
       // Should have made 2 separate API calls (different cache keys)
       expect(apiClient.getPendingContent).toHaveBeenCalledTimes(2);
+    });
+  });
+});
+
+describe('useReviewStats', () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    vi.clearAllMocks();
+  });
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+
+  describe('Data Fetching', () => {
+    it('fetches review stats on mount', async () => {
+      const mockStats = {
+        total: 100,
+        pending: 50,
+        reviewed: 30,
+        rejected: 20,
+        byCategory: {} as Record<import('@/types/content').Category, number>,
+      };
+      vi.mocked(apiClient.getStats).mockResolvedValue(mockStats);
+
+      const { result } = renderHook(() => useReviewStats(), { wrapper });
+
+      expect(result.current.isLoading).toBe(true);
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data).toEqual(mockStats);
+      expect(apiClient.getStats).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns loading state initially', () => {
+      vi.mocked(apiClient.getStats).mockImplementation(
+        () => new Promise(() => {})
+      );
+
+      const { result } = renderHook(() => useReviewStats(), { wrapper });
+
+      expect(result.current.isLoading).toBe(true);
+      expect(result.current.isSuccess).toBe(false);
+      expect(result.current.isError).toBe(false);
+    });
+
+    it('returns data on success', async () => {
+      const mockStats = {
+        total: 150,
+        pending: 75,
+        reviewed: 50,
+        rejected: 25,
+        byCategory: {} as Record<import('@/types/content').Category, number>,
+      };
+      vi.mocked(apiClient.getStats).mockResolvedValue(mockStats);
+
+      const { result } = renderHook(() => useReviewStats(), { wrapper });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(result.current.data).toEqual(mockStats);
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('returns error state on failure', async () => {
+      const mockError = new Error('Failed to fetch stats');
+      vi.mocked(apiClient.getStats).mockRejectedValue(mockError);
+
+      const { result } = renderHook(() => useReviewStats(), { wrapper });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      expect(result.current.error).toEqual(mockError);
+      expect(result.current.data).toBeUndefined();
+    });
+
+    it('handles network errors gracefully', async () => {
+      const networkError = new Error('Network request failed');
+      vi.mocked(apiClient.getStats).mockRejectedValue(networkError);
+
+      const { result } = renderHook(() => useReviewStats(), { wrapper });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      expect(result.current.error).toBe(networkError);
+      expect(result.current.isSuccess).toBe(false);
+    });
+
+    it('can refetch after error', async () => {
+      const mockError = new Error('Initial fetch failed');
+      const mockStats = {
+        total: 100,
+        pending: 50,
+        reviewed: 30,
+        rejected: 20,
+        byCategory: {} as Record<import('@/types/content').Category, number>,
+      };
+
+      // First call fails, second succeeds
+      vi.mocked(apiClient.getStats)
+        .mockRejectedValueOnce(mockError)
+        .mockResolvedValueOnce(mockStats);
+
+      const { result } = renderHook(() => useReviewStats(), { wrapper });
+
+      // Wait for error state
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.error).toEqual(mockError);
+
+      // Refetch
+      result.current.refetch();
+
+      // Wait for success after refetch
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data).toEqual(mockStats);
+      expect(apiClient.getStats).toHaveBeenCalledTimes(2);
+    });
+
+    it('maintains error state until refetch', async () => {
+      const mockError = new Error('Persistent error');
+      vi.mocked(apiClient.getStats).mockRejectedValue(mockError);
+
+      const { result } = renderHook(() => useReviewStats(), { wrapper });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      // Error state should persist
+      expect(result.current.error).toEqual(mockError);
+      expect(result.current.data).toBeUndefined();
+      expect(result.current.isError).toBe(true);
+    });
+  });
+
+  describe('Caching', () => {
+    it('uses query key for cache management', async () => {
+      const mockStats = {
+        total: 100,
+        pending: 50,
+        reviewed: 30,
+        rejected: 20,
+        byCategory: {} as Record<import('@/types/content').Category, number>,
+      };
+      vi.mocked(apiClient.getStats).mockResolvedValue(mockStats);
+
+      const { result } = renderHook(() => useReviewStats(), { wrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(apiClient.getStats).toHaveBeenCalledTimes(1);
+      expect(result.current.data).toEqual(mockStats);
     });
   });
 });
