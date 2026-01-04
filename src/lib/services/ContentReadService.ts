@@ -42,7 +42,7 @@ export class ContentReadService {
       query = query.eq('language', language);
     }
 
-    const { data, error } = await query.order('date', { ascending: false });
+    const { data, error } = await query.order('date', { ascending: true });
 
     if (error) {
       throw new Error(`Failed to list content: ${getErrorMessage(error)}`);
