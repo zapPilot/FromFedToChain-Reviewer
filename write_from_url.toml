@@ -31,6 +31,9 @@ prompt = """
 
   2. 敘事手法 (風格靈魂):
       * 歷史錨點開場 (The Hook): 必須以具體的「歷史場景」或「年份」開頭，講述舊技術初期的笨拙模仿（Skeuomorphism）。
+      * 具象化痛點 (Personification): 拒絕抽象描述（如「用戶面臨高成本」）。必須創造一個具體的人物與場景（如：「在拉各斯的 Tunde 想買貨，卻被匯率吃掉 10% 利潤」）來演繹痛點。
+      * 主動質疑 (Active Skepticism): 當遇到高大上的詞彙（如 AI, DePIN, Intent），必須在稿件中模擬聽眾的懷疑：「這是不是行銷話術？為什麼有了區塊鏈還需要這個？」然後給出具體的「最後一哩路」解釋。
+      * 終局價值 (Terminal Value): 明確區分「手段」與「目的」。例如強調用戶往往不需要「加密貨幣」本身（手段），而是需要它帶來的法幣流動性或服務（目的）。
       * 多源融合 (Synthesis): 
         * 微觀起手: 利用「事件類 URL」中的具體新聞或數據吸引聽眾。
         * 宏觀昇華: 利用「分析類 URL」中的理論或趨勢提升深度。
@@ -42,4 +45,3 @@ prompt = """
     1. 生成 JSON 對象，包含 `topic`, `category`, `title`, `content` (遵循上述規則), `references`, `knowledge_concepts_used`, `keywords`。
     2. 將 JSON 寫入臨時文件 `draft_input.json`。
     3. 執行命令: `npx tsx scripts/create-draft.ts draft_input.json` 並刪除臨時文件。
-"""
