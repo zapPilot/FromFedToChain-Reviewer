@@ -20,8 +20,21 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Valid categories
-type Category = 'daily-news' | 'ethereum' | 'macro' | 'startup' | 'ai' | 'defi';
+// Valid categories - runtime array for validation
+const VALID_CATEGORIES = [
+  'daily-news',
+  'ethereum',
+  'macro',
+  'startup',
+  'ai',
+  'defi',
+] as const;
+
+type Category = (typeof VALID_CATEGORIES)[number];
+
+function isValidCategory(category: string): category is Category {
+  return VALID_CATEGORIES.includes(category as Category);
+}
 
 // Draft input parameters
 interface DraftParams {
@@ -38,6 +51,13 @@ interface DraftParams {
  * Create a draft file in content-drafts/
  */
 async function createDraft(params: DraftParams): Promise<void> {
+  // Validate category
+  if (!isValidCategory(params.category)) {
+    throw new Error(
+      `❌ Invalid category: "${params.category}". Valid categories are: ${VALID_CATEGORIES.join(', ')}`
+    );
+  }
+
   // Auto-generate ID: YYYY-MM-DD-topic
   const date = new Date().toISOString().split('T')[0];
   const id = `${date}-${params.topic}`;

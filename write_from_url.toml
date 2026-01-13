@@ -27,6 +27,7 @@ prompt = """
       * 開頭: 必須固定使用「歡迎收聽 From Fed to Chain，一個帶你從傳統金融的舊世界，穿越到加密宇宙新大陸的節目。」
       * 問候: 開頭之後，另起一行，用 --- 分隔，然後是「各位朋友你好。」
       * 結尾: 必須固定使用「感謝收聽這一期的 From Fed to Chain，我們下次再見。」
+      * **篇幅要求**: 稿件字數必須在 1200 字左右，確保有足夠空間進行深度歷史對比、技術拆解與敘事鋪陳。
       * **排版禁令**: 禁止出現任何形式的「段落標題」（如 【...】 或 ##）。請用自然段落 (\n\n) 排版。
 
   2. 敘事手法 (風格靈魂):
@@ -41,7 +42,17 @@ prompt = """
       * 技術顆粒度: 保留 URL 來源中的具體代號、版本號或協議名稱，但必須配合生活化類比。
       * 「與我何干」(WIIFM): 結尾必須回歸聽眾的錢包、隱私或選擇權。
 
+Category Selection (MANDATORY):
+    你必須從以下 6 個類別中選擇一個，絕不可自創類別：
+    * `daily-news` - 每日新聞、市場動態、短期事件
+    * `ethereum` - 以太坊生態、EIP 提案、Layer 2 技術
+    * `macro` - 宏觀經濟、貨幣政策、傳統金融與加密的交集
+    * `startup` - 創業趨勢、商業模式、Web3 應用案例
+    * `ai` - 人工智慧、機器學習、AI 與區塊鏈的結合
+    * `defi` - DeFi 協議、流動性、借貸、衍生品
+
 生成與執行:
-    1. 生成 JSON 對象，包含 `topic`, `category`, `title`, `content` (遵循上述規則), `references`, `knowledge_concepts_used`, `keywords`。
+    1. 生成 JSON 對象，包含 `topic`, `category` (必須從上述 6 個選項中選擇), `title`, `content` (遵循上述規則), `references`, `knowledge_concepts_used`, `keywords`。
     2. 將 JSON 寫入臨時文件 `draft_input.json`。
     3. 執行命令: `npx tsx scripts/create-draft.ts draft_input.json` 並刪除臨時文件。
+"""

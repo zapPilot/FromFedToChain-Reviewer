@@ -18,6 +18,7 @@
     "test:node:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
     "precommit:test": "npm run type-check && npm run test:coverage",
+    "validate:toml": "tsx scripts/validate-toml.ts",
     "migrate:content": "tsx scripts/migrate-content-to-supabase.ts",
     "drafts:upload": "tsx scripts/upload-drafts.ts"
   },
@@ -49,6 +50,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@iarna/toml": "^2.2.5",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",

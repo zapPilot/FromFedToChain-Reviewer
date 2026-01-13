@@ -1,2 +1,3 @@
 npx --no-install lint-staged
+npm run validate:toml
 npm run precommit:test
